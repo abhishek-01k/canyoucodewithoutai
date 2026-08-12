@@ -65,15 +65,6 @@ const ICONS = [
       </svg>
     ),
   },
-  {
-    id: "terminal",
-    background: "linear-gradient(180deg, #3a4149 0%, #14181d 100%)",
-    art: (
-      <span className="font-mono text-[16px] font-bold text-[#6cd97e]">
-        &gt;_
-      </span>
-    ),
-  },
 ] as const
 
 const TAIL = [
@@ -156,7 +147,10 @@ export function Dock() {
         </span>
       ))}
 
-      {/* The only icon that means anything: the app you are already in. */}
+      {/* The only icon that means anything. cycwai isn't a separate app — it
+          is a command running in this Terminal, which is why there is one
+          terminal in the dock and not two. The chartreuse glow is the
+          design's "you are here", and the dot below is macOS's own. */}
       <span
         onMouseEnter={() => setHovered(ICONS.length)}
         style={{
@@ -166,10 +160,10 @@ export function Dock() {
         className="-mt-2 flex flex-col items-center gap-[3px] transition-transform duration-150 ease-out"
       >
         <span
-          title="cycwai"
-          className="grid size-[58px] place-items-center rounded-[14px] border-2 border-term-accent bg-[#0e100a] font-display text-[15px] font-extrabold text-term-accent shadow-icon-glow"
+          title="Terminal — cycwai"
+          className="grid size-[58px] place-items-center rounded-[14px] border border-white/15 bg-linear-to-b from-[#3a3a3c] to-[#1b1b1d] font-mono text-[19px] leading-none font-bold text-white shadow-icon-glow"
         >
-          cy_
+          &gt;_
         </span>
         <span
           aria-hidden
