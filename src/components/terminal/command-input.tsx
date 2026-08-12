@@ -69,7 +69,8 @@ export function CommandInput({
 
   function recall(offset: number | null) {
     setHistoryOffset(offset)
-    const next = offset === null ? "" : (history[history.length - 1 - offset] ?? "")
+    const next =
+      offset === null ? "" : (history[history.length - 1 - offset] ?? "")
     onChange(next)
 
     // Caret to the end of the recalled line, after React paints it.
@@ -104,7 +105,10 @@ export function CommandInput({
       if (completed && completed !== value) {
         onChange(completed)
         requestAnimationFrame(() => {
-          inputRef.current?.setSelectionRange(completed.length, completed.length)
+          inputRef.current?.setSelectionRange(
+            completed.length,
+            completed.length
+          )
           setCaret(completed.length)
         })
       }
@@ -114,7 +118,10 @@ export function CommandInput({
     if (event.key === "ArrowUp") {
       if (history.length === 0) return
       event.preventDefault()
-      const next = historyOffset === null ? 0 : Math.min(historyOffset + 1, history.length - 1)
+      const next =
+        historyOffset === null
+          ? 0
+          : Math.min(historyOffset + 1, history.length - 1)
       recall(next)
       return
     }

@@ -1,6 +1,7 @@
 import { TerminalWindow } from "@/components/terminal/terminal-window"
 import { MobileGate } from "@/modules/mobileGate/page"
 
+import { DesktopItems } from "./desktop-items"
 import { Dock } from "./dock"
 import { MenuBar } from "./menu-bar"
 import { Wallpaper } from "./wallpaper"
@@ -41,11 +42,18 @@ export function DesktopScene({
         <MobileGate />
       </div>
 
-      <div className="hidden min-h-svh flex-col items-center justify-start pt-16 md:flex">
+      <div className="hidden md:block">
+        <DesktopItems />
+      </div>
+
+      {/* The centring column spans the viewport, so it would swallow every
+          click meant for the icons sitting under it. Only the window itself
+          is solid to the pointer. */}
+      <div className="pointer-events-none hidden min-h-svh flex-col items-center justify-start pt-16 md:flex">
         <TerminalWindow
           tone={tone}
           interactive
-          className="h-[calc(100svh-12rem)] max-h-[760px] min-h-[420px] w-[940px] max-w-[92vw]"
+          className="pointer-events-auto h-[calc(100svh-12rem)] max-h-[760px] min-h-[420px] w-[940px] max-w-[92vw]"
         >
           {children}
         </TerminalWindow>

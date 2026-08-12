@@ -20,8 +20,7 @@ export function PromptLine({
   return (
     <div className={cn("text-term-ink", className)}>
       <span className="text-term-accent">{SHELL.user}</span>
-      <span className="text-term-faint"> {SHELL.cwd} %</span>{" "}
-      {children}
+      <span className="text-term-faint"> {SHELL.cwd} %</span> {children}
       {cursor ? <Cursor /> : null}
     </div>
   )

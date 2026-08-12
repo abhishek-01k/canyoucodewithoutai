@@ -36,6 +36,7 @@ export function TerminalWindow({
   title,
   tone = "default",
   interactive = false,
+  onClose,
   className,
 }: Readonly<{
   children: React.ReactNode
@@ -44,6 +45,8 @@ export function TerminalWindow({
   tone?: "default" | "dead"
   /** Drag by the title bar and resize from the edges. Desktop only. */
   interactive?: boolean
+  /** Arms the red light. Windows that can't be dismissed stay decorative. */
+  onClose?: () => void
   className?: string
 }>) {
   const dead = tone === "dead"
@@ -79,10 +82,28 @@ export function TerminalWindow({
           interactive && "touch-none"
         )}
       >
-        <span className="flex flex-none gap-2" data-no-drag aria-hidden>
-          <span className="size-3 rounded-full bg-mac-red" />
-          <span className="size-3 rounded-full bg-mac-yellow" />
-          <span className="size-3 rounded-full bg-mac-green" />
+        {/* The lights are set dressing unless someone hands us an onClose —
+            then the red one is a real button, and the only one that is. */}
+        <span className="flex flex-none gap-2" data-no-drag>
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close window"
+              className="group grid size-3 place-items-center rounded-full bg-mac-red outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              <span
+                aria-hidden
+                className="font-ui text-[9px] leading-none font-bold text-black/60 opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                ✕
+              </span>
+            </button>
+          ) : (
+            <span aria-hidden className="size-3 rounded-full bg-mac-red" />
+          )}
+          <span aria-hidden className="size-3 rounded-full bg-mac-yellow" />
+          <span aria-hidden className="size-3 rounded-full bg-mac-green" />
         </span>
 
         <span

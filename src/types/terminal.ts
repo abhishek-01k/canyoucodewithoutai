@@ -1,12 +1,6 @@
 /** Descending text importance inside the terminal body. */
 export type TermTone =
-  | "ink"
-  | "muted"
-  | "faint"
-  | "accent"
-  | "danger"
-  | "warn"
-  | "prompt"
+  "ink" | "muted" | "faint" | "accent" | "danger" | "warn" | "prompt"
 
 export const TONE_CLASS: Record<TermTone, string> = {
   ink: "text-term-ink",
@@ -31,7 +25,9 @@ export const SHELL = {
  * Before the first measurement lands it omits the size rather than guessing
  * one — a wrong number is worse than no number.
  */
-export function shellTitle(grid: { cols: number; rows: number } | null): string {
+export function shellTitle(
+  grid: { cols: number; rows: number } | null
+): string {
   const base = `${SHELL.user} — ${SHELL.host} — zsh`
   return grid ? `${base} — ${grid.cols}×${grid.rows}` : base
 }

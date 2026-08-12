@@ -67,7 +67,12 @@ function clampPosition(frame: Frame): Frame {
  * by the screen edge they travel toward, so a window can be *dragged* partly
  * off-screen (as on a mac) but never *resized* off it.
  */
-function resize(start: Frame, direction: ResizeDirection, dx: number, dy: number): Frame {
+function resize(
+  start: Frame,
+  direction: ResizeDirection,
+  dx: number,
+  dy: number
+): Frame {
   let { left, top, width, height } = start
 
   if (direction.includes("e")) {
@@ -80,7 +85,11 @@ function resize(start: Frame, direction: ResizeDirection, dx: number, dy: number
   }
 
   if (direction.includes("s")) {
-    height = clamp(start.height + dy, MIN_HEIGHT, window.innerHeight - start.top)
+    height = clamp(
+      start.height + dy,
+      MIN_HEIGHT,
+      window.innerHeight - start.top
+    )
   }
 
   if (direction.includes("n")) {
@@ -152,26 +161,29 @@ export function useWindowFrame(enabled: boolean) {
   // Gated on the ref, not on `active`: state isn't committed until React
   // re-renders, so a fast gesture delivers its first pointermove in the same
   // tick as the pointerdown and would be silently dropped.
-  const onPointerMove = useCallback((event: React.PointerEvent<HTMLElement>) => {
-    const current = gesture.current
-    if (!current) return
+  const onPointerMove = useCallback(
+    (event: React.PointerEvent<HTMLElement>) => {
+      const current = gesture.current
+      if (!current) return
 
-    const dx = event.clientX - current.pointer.x
-    const dy = event.clientY - current.pointer.y
+      const dx = event.clientX - current.pointer.x
+      const dy = event.clientY - current.pointer.y
 
-    if (current.direction === null) {
-      setFrame(
-        clampPosition({
-          ...current.frame,
-          left: current.frame.left + dx,
-          top: current.frame.top + dy,
-        })
-      )
-      return
-    }
+      if (current.direction === null) {
+        setFrame(
+          clampPosition({
+            ...current.frame,
+            left: current.frame.left + dx,
+            top: current.frame.top + dy,
+          })
+        )
+        return
+      }
 
-    setFrame(resize(current.frame, current.direction, dx, dy))
-  }, [])
+      setFrame(resize(current.frame, current.direction, dx, dy))
+    },
+    []
+  )
 
   const onPointerUp = useCallback((event: React.PointerEvent<HTMLElement>) => {
     gesture.current = null

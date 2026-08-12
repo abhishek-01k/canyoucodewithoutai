@@ -22,7 +22,10 @@ const INITIAL_LINES: ShellLineBody[] = [
 ]
 
 function openingLines(startId: number): ShellLine[] {
-  return INITIAL_LINES.map((body, offset) => ({ ...body, id: startId + offset }))
+  return INITIAL_LINES.map((body, offset) => ({
+    ...body,
+    id: startId + offset,
+  }))
 }
 
 function init(): SessionState {
@@ -49,7 +52,10 @@ function reducer(state: SessionState, action: SessionAction): SessionState {
     }
   }
 
-  const appended: ShellLineBody[] = [{ kind: "command", text: command }, ...result.output]
+  const appended: ShellLineBody[] = [
+    { kind: "command", text: command },
+    ...result.output,
+  ]
   if (result.output.length > 0) appended.push({ kind: "blank" })
 
   let id = state.nextId

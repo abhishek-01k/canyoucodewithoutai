@@ -7,7 +7,32 @@
 export const SITE = {
   name: "canyoucodewithoutai.xyz",
   url: "https://canyoucodewithoutai.xyz",
-  author: "@two_takes_only",
+  author: "@abhish_3k",
+} as const
+
+/**
+ * The folder sitting on the desktop, and what's inside it. Handles live here
+ * rather than in the component so adding a social is a one-line edit.
+ */
+export const KNOW_MORE = {
+  folder: "Know More",
+  title: "know_more",
+  name: "Abhishek Singh",
+  role: "built this instead of sleeping",
+  email: "abhishekkumar214567@gmail.com",
+  bio: "made canyoucodewithoutai — five questions, three lives, no autocomplete. if you want to argue about the answers, every door below is open.",
+  /** If this ever 404s the component falls back to initials, not a broken img. */
+  photo: "/icons/abhishek_profile.jpg",
+  /** Drive's own viewer, opened in a tab — deliberately not a download. */
+  resume:
+    "https://drive.google.com/file/d/1swxF65XhZIyFxgwdhake1AJQdmEmpfTC/view?usp=sharing",
+  resumeLabel: "View résumé",
+  /** An empty href hides the icon — that's how LinkedIn gets added later. */
+  socials: [
+    { id: "x", label: "X", href: "https://x.com/abhish_3k" },
+    { id: "github", label: "GitHub", href: "https://github.com/abhishek-01k" },
+    { id: "linkedin", label: "LinkedIn", href: "" },
+  ],
 } as const
 
 export const LANDING = {
@@ -23,7 +48,7 @@ export const LANDING = {
     { command: "cycwai play", description: "start — 5 levels, 3 lives" },
   ],
   startHint: "start the run — we both know why you're here",
-  footer: "made by @two_takes_only · no cookies · no tracking · just judgement",
+  footer: "made by @abhish_3k · no cookies · no tracking · just judgement",
 } as const
 
 export const SHELL_COPY = {

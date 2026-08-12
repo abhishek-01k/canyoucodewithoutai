@@ -23,7 +23,13 @@ export function MenuBar() {
 
   return (
     <div className="absolute inset-x-0 top-0 z-10 flex h-7 items-center gap-[18px] bg-[rgba(20,26,18,.55)] px-4 font-ui text-[13px] text-white/92 backdrop-blur-[20px] backdrop-saturate-150">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden
+      >
         <path d="M4 5h16v3H4zM4 10h16v3H4zM4 15h10v3H4z" />
       </svg>
 
@@ -35,7 +41,13 @@ export function MenuBar() {
       ))}
 
       <span className="ml-auto flex items-center gap-4">
-        <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor" aria-hidden>
+        <svg
+          width="16"
+          height="12"
+          viewBox="0 0 16 12"
+          fill="currentColor"
+          aria-hidden
+        >
           <path
             d="M8 9.6a1.6 1.6 0 110 3.2 1.6 1.6 0 010-3.2zM8 5.8c1.66 0 3.16.66 4.26 1.73l-1.42 1.42A4.38 4.38 0 008 7.8c-1.1 0-2.1.4-2.84 1.15L3.74 7.53A6.03 6.03 0 018 5.8zM8 2c2.7 0 5.16 1.07 6.96 2.8l-1.42 1.42A7.83 7.83 0 008 4C5.85 4 3.9 4.85 2.46 6.22L1.04 4.8A9.87 9.87 0 018 2z"
             transform="translate(0 -1)"
@@ -54,8 +66,18 @@ export function MenuBar() {
               fill="none"
               stroke="rgba(255,255,255,.5)"
             />
-            <rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor" />
-            <path d="M25.5 4.5v4a2.2 2.2 0 000-4z" fill="rgba(255,255,255,.5)" />
+            <rect
+              x="2"
+              y="2"
+              width="20"
+              height="9"
+              rx="2"
+              fill="currentColor"
+            />
+            <path
+              d="M25.5 4.5v4a2.2 2.2 0 000-4z"
+              fill="rgba(255,255,255,.5)"
+            />
           </svg>
         </span>
 

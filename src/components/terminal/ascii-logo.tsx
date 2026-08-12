@@ -27,7 +27,7 @@ export function AsciiLogo({ className }: Readonly<{ className?: string }>) {
       role="img"
       aria-label="cycwai"
       className={cn(
-        "overflow-x-auto text-[14px]/[0.82] font-bold text-term-accent [font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace] [text-shadow:0_0_10px_rgba(201,247,58,.35)]",
+        "overflow-x-auto [font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace] text-[14px]/[0.82] font-bold text-term-accent [text-shadow:0_0_10px_rgba(201,247,58,.35)]",
         className
       )}
     >

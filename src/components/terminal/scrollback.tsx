@@ -34,7 +34,7 @@ export function Scrollback({
     <div
       ref={ref}
       aria-live="polite"
-      className={cn("overflow-y-auto overflow-x-hidden", className)}
+      className={cn("overflow-x-hidden overflow-y-auto", className)}
     >
       {children}
     </div>

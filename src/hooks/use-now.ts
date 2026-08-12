@@ -12,10 +12,13 @@ function subscribe(onChange: () => void) {
   let timeout: ReturnType<typeof setTimeout>
 
   function schedule() {
-    timeout = setTimeout(() => {
-      onChange()
-      schedule()
-    }, MINUTE - (Date.now() % MINUTE))
+    timeout = setTimeout(
+      () => {
+        onChange()
+        schedule()
+      },
+      MINUTE - (Date.now() % MINUTE)
+    )
   }
 
   schedule()

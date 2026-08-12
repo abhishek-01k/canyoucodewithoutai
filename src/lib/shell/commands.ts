@@ -40,16 +40,18 @@ export function runCommand(input: string): CommandResult {
 
   if (command === "cycwai login") {
     return {
-      output: [
-        { kind: "text", text: SHELL_COPY.loginPending, tone: "warn" },
-      ],
+      output: [{ kind: "text", text: SHELL_COPY.loginPending, tone: "warn" }],
     }
   }
 
   if (command === "cycwai play") {
     return {
       output: [
-        { kind: "text", text: `✗ ${SHELL_COPY.notAuthenticated}`, tone: "danger" },
+        {
+          kind: "text",
+          text: `✗ ${SHELL_COPY.notAuthenticated}`,
+          tone: "danger",
+        },
         { kind: "text", text: SHELL_COPY.needsAccount, tone: "muted" },
         { kind: "text", text: SHELL_COPY.loginFirst, tone: "faint" },
       ],
@@ -58,7 +60,11 @@ export function runCommand(input: string): CommandResult {
 
   return {
     output: [
-      { kind: "text", text: SHELL_COPY.notFound(command.split(" ")[0]), tone: "danger" },
+      {
+        kind: "text",
+        text: SHELL_COPY.notFound(command.split(" ")[0]),
+        tone: "danger",
+      },
     ],
   }
 }

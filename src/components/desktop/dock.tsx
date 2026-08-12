@@ -1,196 +1,412 @@
 "use client"
 
-import { useState } from "react"
+import Image from "next/image"
+import { useMemo, useRef, useState } from "react"
 
 import { useReducedMotion } from "@/hooks/use-reduced-motion"
 
 /**
- * Icons are hand-drawn per the handoff — no Apple logo, no copied app art.
- * Everything except cycwai is set dressing and stays out of the a11y tree.
+ * Geometry. Every number the dock draws is derived from these, so the
+ * magnification curve, the drag snapping and the resting layout can never
+ * disagree with each other.
  */
-const ICONS = [
-  {
-    id: "finder",
-    background: "linear-gradient(180deg, #6fb7f7 0%, #2f7cd6 100%)",
-    art: (
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="4" width="18" height="16" rx="4" fill="#eaf4ff" />
-        <path d="M12 4v16" stroke="#2f7cd6" strokeWidth="1.6" />
-        <circle cx="8" cy="10" r="1" fill="#1d4f8f" />
-        <circle cx="16" cy="10" r="1" fill="#1d4f8f" />
-        <path
-          d="M7.5 14c1.2 1.4 2.6 2 4.5 2s3.3-.6 4.5-2"
-          stroke="#1d4f8f"
-          strokeWidth="1.4"
-          strokeLinecap="round"
-          fill="none"
-        />
-      </svg>
-    ),
-  },
-  {
-    id: "compass",
-    background:
-      "radial-gradient(circle at 50% 40%, #eef6ff 0%, #d3e6fa 55%, #b9d5f2 100%)",
-    art: (
-      <svg width="34" height="34" viewBox="0 0 24 24">
-        <defs>
-          <radialGradient id="dock-compass" cx=".5" cy=".35" r=".8">
-            <stop offset="0" stopColor="#4fb2f9" />
-            <stop offset="1" stopColor="#1668c9" />
-          </radialGradient>
-        </defs>
-        <circle cx="12" cy="12" r="10" fill="url(#dock-compass)" />
-        <path d="M16.5 7.5l-3.2 5.8-5.8 3.2 3.2-5.8z" fill="#fff" />
-        <path d="M13.3 13.3l-2.6-2.6 5.8-3.2z" fill="#ff4d4d" />
-      </svg>
-    ),
-  },
-  {
-    id: "mail",
-    background: "linear-gradient(180deg, #8ec9f5 0%, #3d94e6 100%)",
-    art: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="5" width="18" height="14" rx="3" fill="#fff" />
-        <path d="M4 7l8 6 8-6" stroke="#3d94e6" strokeWidth="1.6" fill="none" />
-      </svg>
-    ),
-  },
-  {
-    id: "music",
-    background: "linear-gradient(180deg, #fc6076 0%, #e0304c 100%)",
-    art: (
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff">
-        <path d="M9 18.5a2.5 2.5 0 11-2.5-2.5H9V6.8l9-2v10.7a2.5 2.5 0 11-2.5-2.5h.5V7.6l-5 1.1z" />
-      </svg>
-    ),
-  },
-] as const
+const BASE = 54 // resting tile size
+const GAP = 16 // breathing room between tiles
+const DIVIDER_W = 1
+const MAX_SCALE = 1.5 // magnification at the cursor
+const INFLUENCE = 2 // how many slots the magnification reaches, each side
+const SLOT = BASE + GAP // one tile's share of the row
+const DRAG_THRESHOLD = 4 // px of travel before a press becomes a drag
+const LIFT = 10 // px a dragged tile rises off the dock
 
-const TAIL = [
-  {
-    id: "settings",
-    background: "linear-gradient(180deg, #c8ccd2 0%, #83898f 100%)",
-    art: (
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="#4b5158">
-        <path
-          d="M12 8a4 4 0 100 8 4 4 0 000-8zm8.9 5.5l2 1.2-2 3.4-2.3-.9a8 8 0 01-2 1.2l-.4 2.4h-4l-.4-2.4a8 8 0 01-2-1.2l-2.3.9-2-3.4 2-1.2a8 8 0 010-2.9l-2-1.2 2-3.4 2.3.9a8 8 0 012-1.2l.4-2.4h4l.4 2.4a8 8 0 012 1.2l2.3-.9 2 3.4-2 1.2a8 8 0 010 2.9z"
-          transform="scale(.9) translate(1.2 1.2)"
-        />
-      </svg>
-    ),
-  },
-  {
-    id: "trash",
-    background: "linear-gradient(180deg, #e9edf1 0%, #b9c1c9 100%)",
-    art: (
-      <svg
-        width="26"
-        height="26"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="#6b7278"
-        strokeWidth="1.6"
-      >
-        <path d="M6 7h12l-1 13H7z" />
-        <path d="M4 7h16M10 7V5a2 2 0 014 0v2M10 11v6M14 11v6" />
-      </svg>
-    ),
-  },
-] as const
+type DockApp = {
+  id: string
+  label: string
+  src: string
+  /** The one icon that means anything: it gets the glow and the dot. */
+  running?: true
+}
 
-/** macOS magnifies the hovered icon and, less so, its immediate neighbours. */
-function scaleFor(distance: number | null): number {
-  if (distance === null) return 1
-  if (distance === 0) return 1.35
-  if (distance === 1) return 1.15
-  return 1
+const APPS: readonly DockApp[] = [
+  { id: "finder", label: "Finder", src: "/icons/Finder.png" },
+  { id: "safari", label: "Safari", src: "/icons/Safari.png" },
+  { id: "mail", label: "Mail", src: "/icons/Mail.png" },
+  { id: "music", label: "Music", src: "/icons/Music.png" },
+  { id: "calendar", label: "Calendar", src: "/icons/calender.png" },
+  { id: "clock", label: "Clock", src: "/icons/Clock.png" },
+  { id: "settings", label: "System Settings", src: "/icons/Settings.png" },
+  {
+    id: "terminal",
+    label: "Terminal — cycwai",
+    src: "/icons/Terminal.png",
+    running: true,
+  },
+]
+
+const TRASH = { id: "trash", label: "Trash", src: "/icons/Trash Full.png" }
+
+const APP_BY_ID = new Map(APPS.map((app) => [app.id, app]))
+
+/** Cells are the apps, then the divider, then Trash. */
+const CELLS = APPS.length + 2
+const DIVIDER_INDEX = APPS.length
+
+function cellWidth(index: number) {
+  return index === DIVIDER_INDEX ? DIVIDER_W : BASE
+}
+
+/**
+ * The resting row: where flex puts every cell when nothing is hovered. It is
+ * static, so it is computed once and reused as the coordinate system for both
+ * magnification and dragging. Measuring the live row instead would feed the
+ * magnified widths back into the pointer maths and the dock would oscillate.
+ */
+const RESTING = (() => {
+  const x: number[] = []
+  let cursor = 0
+  for (let i = 0; i < CELLS; i++) {
+    x.push(cursor)
+    cursor += cellWidth(i) + GAP
+  }
+  return { x, width: cursor - GAP }
+})()
+
+type Drag = { id: string; from: number; to: number; dx: number }
+
+function reorder(list: readonly string[], from: number, to: number) {
+  const next = [...list]
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  return next
+}
+
+/**
+ * Smooth falloff instead of the old three-step ladder: full magnification
+ * under the cursor, easing to nothing INFLUENCE slots away. cos² is flat at
+ * both ends, so tiles neither snap awake nor snap still.
+ */
+function magnification(distanceInSlots: number) {
+  if (distanceInSlots >= INFLUENCE) return 1
+  const t = (distanceInSlots / INFLUENCE) * (Math.PI / 2)
+  return 1 + (MAX_SCALE - 1) * Math.cos(t) ** 2
 }
 
 /**
  * Hidden below md — on mobile the terminal is the whole viewport and there is
  * no desktop to sit on.
+ *
+ * Tiles keep their resting box in the flex row and are placed with transforms
+ * only, so magnifying never triggers layout on ten elements at once. The row's
+ * width is the one thing that does change, which lets the bar breathe with the
+ * icons rather than clipping them.
  */
 export function Dock() {
   const reduced = useReducedMotion()
-  const [hovered, setHovered] = useState<number | null>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
 
-  // cycwai occupies its own index in the magnification run (ICONS.length) so
-  // hovering it lifts its neighbours the way every other icon does.
-  function distance(index: number) {
-    if (reduced || hovered === null) return null
-    return Math.abs(hovered - index)
+  const [order, setOrder] = useState<readonly string[]>(() =>
+    APPS.map((app) => app.id)
+  )
+  /** Cursor position in *resting* row coordinates, or null when away. */
+  const [pointerX, setPointerX] = useState<number | null>(null)
+  const [drag, setDrag] = useState<Drag | null>(null)
+  /** One frame of leftover offset so a dropped tile eases into its slot. */
+  const [settling, setSettling] = useState<{ id: string; dx: number } | null>(
+    null
+  )
+  const pressRef = useRef<{ id: string; from: number; startX: number } | null>(
+    null
+  )
+
+  const apps = useMemo(
+    () => order.map((id) => APP_BY_ID.get(id)!).filter(Boolean),
+    [order]
+  )
+
+  // Magnification is suspended mid-drag: a tile that changes width while you
+  // are aiming it at a slot is impossible to aim.
+  const magnify = !reduced && pointerX !== null && drag === null
+
+  const layout = useMemo(() => {
+    const scales: number[] = []
+    for (let i = 0; i < CELLS; i++) {
+      if (!magnify || i === DIVIDER_INDEX) {
+        scales.push(1)
+        continue
+      }
+      const center = RESTING.x[i] + cellWidth(i) / 2
+      scales.push(magnification(Math.abs(pointerX! - center) / SLOT))
+    }
+
+    // Re-flow the row at the magnified widths, then express each cell's new
+    // centre as an offset from where flex already put it.
+    const offsets: number[] = []
+    const centers: number[] = []
+    let cursor = 0
+    for (let i = 0; i < CELLS; i++) {
+      const width = cellWidth(i) * scales[i]
+      centers.push(cursor + width / 2)
+      offsets.push(cursor + width / 2 - (RESTING.x[i] + cellWidth(i) / 2))
+      cursor += width + GAP
+    }
+
+    // Whichever cell owns the cursor gets the label, judged on the resting
+    // grid so the answer matches the tile that actually peaked.
+    let hovered = -1
+    if (magnify) {
+      for (let i = 0; i < CELLS; i++) {
+        if (i === DIVIDER_INDEX) continue
+        const center = RESTING.x[i] + cellWidth(i) / 2
+        if (Math.abs(pointerX! - center) <= SLOT / 2) hovered = i
+      }
+    }
+
+    return { scales, offsets, centers, hovered, width: cursor - GAP }
+  }, [magnify, pointerX])
+
+  /**
+   * The row is centred, so its width changes but its centre does not — which
+   * makes the centre the only stable thing to measure the cursor against.
+   */
+  function trackPointer(event: React.PointerEvent) {
+    const rect = rowRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const restingLeft = rect.left + rect.width / 2 - RESTING.width / 2
+    setPointerX(event.clientX - restingLeft)
   }
 
-  function tileStyle(index: number, background?: string) {
-    return {
-      background,
-      transform: `scale(${scaleFor(distance(index))})`,
-      transformOrigin: "bottom center",
+  function startPress(
+    event: React.PointerEvent<HTMLDivElement>,
+    index: number
+  ) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    pressRef.current = {
+      id: apps[index].id,
+      from: index,
+      startX: event.clientX,
     }
   }
 
+  function continuePress(event: React.PointerEvent) {
+    const press = pressRef.current
+    if (!press) return
+    const dx = event.clientX - press.startX
+    if (drag === null && Math.abs(dx) < DRAG_THRESHOLD) return
+
+    // Tiles are uniform up to the divider, so the target slot is just how many
+    // whole slots the pointer has travelled.
+    const to = Math.min(
+      APPS.length - 1,
+      Math.max(0, press.from + Math.round(dx / SLOT))
+    )
+    setDrag({ id: press.id, from: press.from, to, dx })
+  }
+
+  function endPress(event: React.PointerEvent<HTMLDivElement>) {
+    const press = pressRef.current
+    pressRef.current = null
+    if (press && event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    if (drag === null) return // a plain click, nothing moved
+
+    // Commit the order and hand the tile the distance it still has to travel,
+    // so it slides into the slot instead of teleporting there. Two frames:
+    // one to paint the leftover, one to animate it away.
+    setOrder((current) => reorder(current, drag.from, drag.to))
+    setSettling({ id: drag.id, dx: drag.dx - (drag.to - drag.from) * SLOT })
+    setDrag(null)
+    requestAnimationFrame(() => requestAnimationFrame(() => setSettling(null)))
+  }
+
+  /** How far a bystander slides to open (or close) the gap under the drag. */
+  function displacement(index: number) {
+    if (drag === null || index === drag.from) return 0
+    if (drag.from < drag.to && index > drag.from && index <= drag.to) {
+      return -SLOT
+    }
+    if (drag.from > drag.to && index < drag.from && index >= drag.to) {
+      return SLOT
+    }
+    return 0
+  }
+
+  function tileStyle(index: number, id: string) {
+    const held = drag?.id === id
+    const landing = settling?.id === id
+    let dx = layout.offsets[index]
+    let dy = 0
+    let scale = layout.scales[index]
+
+    if (held) {
+      dx += drag!.dx
+      dy = -LIFT
+      scale = 1.1
+    } else if (landing) {
+      dx += settling!.dx
+      dy = -LIFT
+      scale = 1.1
+    } else {
+      dx += displacement(index)
+    }
+
+    return {
+      width: BASE,
+      height: BASE,
+      transform: `translate(${dx}px, ${dy}px) scale(${scale})`,
+      transformOrigin: "bottom center",
+      zIndex: held ? 30 : landing ? 20 : undefined,
+      transitionProperty: "transform",
+      transitionTimingFunction: "cubic-bezier(.22,1,.36,1)",
+      transitionDuration: motionDuration(held || landing),
+    }
+  }
+
+  /**
+   * Instant while a tile is under the hand, unhurried on the way back, and
+   * quick but not twitchy while merely following the cursor.
+   */
+  function motionDuration(pinned: boolean) {
+    if (reduced || pinned) return "0ms"
+    if (drag !== null) return "220ms"
+    return pointerX === null ? "320ms" : "130ms"
+  }
+
+  const terminalIndex = apps.findIndex((app) => app.running)
+  const terminalId = terminalIndex === -1 ? null : apps[terminalIndex].id
+  const dotX =
+    terminalIndex === -1
+      ? 0
+      : layout.centers[terminalIndex] +
+        (drag?.id === terminalId
+          ? drag.dx
+          : settling?.id === terminalId
+            ? settling.dx
+            : displacement(terminalIndex))
+
+  const hoveredLabel =
+    layout.hovered === -1
+      ? null
+      : layout.hovered === CELLS - 1
+        ? TRASH.label
+        : (apps[layout.hovered]?.label ?? null)
+
   return (
     <div
-      className="absolute bottom-3 left-1/2 z-10 hidden -translate-x-1/2 items-end gap-[11px] rounded-dock border border-white/[.14] bg-[rgba(30,36,28,.42)] px-[14px] py-[9px] shadow-dock backdrop-blur-[24px] backdrop-saturate-150 md:flex"
-      onMouseLeave={() => setHovered(null)}
+      className="absolute bottom-3 left-1/2 z-10 hidden -translate-x-1/2 rounded-dock border border-white/[.14] bg-[rgba(30,36,28,.42)] px-[14px] py-[10px] shadow-dock backdrop-blur-[24px] backdrop-saturate-150 md:block"
+      onPointerMove={trackPointer}
+      onPointerLeave={() => setPointerX(null)}
     >
-      {ICONS.map((icon, index) => (
-        <span
-          key={icon.id}
-          aria-hidden
-          onMouseEnter={() => setHovered(index)}
-          style={tileStyle(index, icon.background)}
-          className="grid size-[52px] place-items-center rounded-icon transition-transform duration-150 ease-out"
-        >
-          {icon.art}
-        </span>
-      ))}
-
-      {/* The only icon that means anything. cycwai isn't a separate app — it
-          is a command running in this Terminal, which is why there is one
-          terminal in the dock and not two. The chartreuse glow is the
-          design's "you are here", and the dot below is macOS's own. */}
-      <span
-        onMouseEnter={() => setHovered(ICONS.length)}
+      <div
+        ref={rowRef}
+        className="relative flex items-end"
         style={{
-          transform: `scale(${scaleFor(distance(ICONS.length))})`,
-          transformOrigin: "bottom center",
+          gap: GAP,
+          height: BASE,
+          width: layout.width,
+          transitionProperty: "width",
+          transitionTimingFunction: "cubic-bezier(.22,1,.36,1)",
+          transitionDuration: motionDuration(false),
         }}
-        className="-mt-2 flex flex-col items-center gap-[3px] transition-transform duration-150 ease-out"
       >
-        <span
-          title="Terminal — cycwai"
-          className="grid size-[58px] place-items-center rounded-[14px] border border-white/15 bg-linear-to-b from-[#3a3a3c] to-[#1b1b1d] font-mono text-[19px] leading-none font-bold text-white shadow-icon-glow"
-        >
-          &gt;_
-        </span>
-        <span
-          aria-hidden
-          className="size-1 rounded-full bg-white/95"
-          title="running"
-        />
-      </span>
-
-      <span
-        aria-hidden
-        className="mx-[3px] h-[50px] w-px self-center bg-white/[.18]"
-      />
-
-      {TAIL.map((icon, i) => {
-        const index = ICONS.length + 1 + i
-        return (
-          <span
-            key={icon.id}
-            aria-hidden
-            onMouseEnter={() => setHovered(index)}
-            style={tileStyle(index, icon.background)}
-            className="grid size-[52px] place-items-center rounded-icon transition-transform duration-150 ease-out"
+        {apps.map((app, index) => (
+          <div
+            key={app.id}
+            aria-hidden={!app.running || undefined}
+            role={app.running ? "img" : undefined}
+            aria-label={app.running ? `${app.label}, running` : undefined}
+            title={app.running ? app.label : undefined}
+            onPointerDown={(event) => startPress(event, index)}
+            onPointerMove={continuePress}
+            onPointerUp={endPress}
+            onPointerCancel={endPress}
+            style={tileStyle(index, app.id)}
+            className="relative flex-none cursor-grab touch-none select-none active:cursor-grabbing"
           >
-            {icon.art}
+            {/* The glow is a drop-shadow rather than a box-shadow so it hugs
+                the icon's own silhouette instead of a square that isn't
+                there. */}
+            <Image
+              src={app.src}
+              alt=""
+              width={BASE * 2}
+              height={BASE * 2}
+              loading="eager"
+              draggable={false}
+              className={
+                app.running
+                  ? "size-full object-contain drop-shadow-[0_0_11px_rgba(201,247,58,.55)]"
+                  : "size-full object-contain drop-shadow-[0_3px_6px_rgba(0,0,0,.35)]"
+              }
+            />
+          </div>
+        ))}
+
+        <div
+          aria-hidden
+          className="flex-none self-center bg-white/[.18]"
+          style={{
+            width: DIVIDER_W,
+            height: 38,
+            transform: `translateX(${layout.offsets[DIVIDER_INDEX]}px)`,
+            transitionProperty: "transform",
+            transitionTimingFunction: "cubic-bezier(.22,1,.36,1)",
+            transitionDuration: motionDuration(false),
+          }}
+        />
+
+        {/* Trash keeps its own section, the way macOS does — the divider is a
+            wall, not a suggestion, so it stays out of the drag order. */}
+        <div
+          aria-hidden
+          style={tileStyle(CELLS - 1, TRASH.id)}
+          className="relative flex-none touch-none select-none"
+        >
+          <Image
+            src={TRASH.src}
+            alt=""
+            width={BASE * 2}
+            height={BASE * 2}
+            loading="eager"
+            draggable={false}
+            className="size-full object-contain drop-shadow-[0_3px_6px_rgba(0,0,0,.35)]"
+          />
+        </div>
+
+        {/* cycwai isn't a separate app — it is a command running in this
+            Terminal. The dot is macOS's own "running" marker, and it lives on
+            the row rather than inside the tile so magnification can't drag it
+            down through the dock's floor. */}
+        {terminalIndex !== -1 && (
+          <span
+            aria-hidden
+            className="absolute bottom-[-8px] left-0 size-[3px] rounded-full bg-white/95"
+            style={{
+              transform: `translateX(${dotX}px) translateX(-50%)`,
+              transitionProperty: "transform",
+              transitionTimingFunction: "cubic-bezier(.22,1,.36,1)",
+              transitionDuration: motionDuration(
+                drag?.id === terminalId || settling?.id === terminalId
+              ),
+            }}
+          />
+        )}
+
+        {hoveredLabel && drag === null && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute bottom-full left-0 rounded-md border border-white/10 bg-[rgba(24,26,24,.92)] px-2 py-[3px] font-ui text-[11px] whitespace-nowrap text-white/90 shadow-panel"
+            style={{
+              transform: `translateX(${layout.centers[layout.hovered]}px) translateX(-50%)`,
+              marginBottom: BASE * (layout.scales[layout.hovered] - 1) + 12,
+            }}
+          >
+            {hoveredLabel}
           </span>
-        )
-      })}
+        )}
+      </div>
     </div>
   )
 }
