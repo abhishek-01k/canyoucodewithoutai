@@ -26,6 +26,14 @@ export const LANDING = {
   footer: "made by @two_takes_only · no cookies · no tracking · just judgement",
 } as const
 
+export const SHELL_COPY = {
+  notAuthenticated: "not authenticated.",
+  needsAccount: "your handle comes from your account, and the card needs it.",
+  loginFirst: "run `cycwai login` first.",
+  loginPending: "login isn't wired up yet — that's the next build.",
+  notFound: (command: string) => `zsh: command not found: ${command}`,
+} as const
+
 /**
  * Levels 1, 3, 4 and 5 all want a real keyboard — a phone would make the
  * game a test of patience rather than of skill. Rather than ship a

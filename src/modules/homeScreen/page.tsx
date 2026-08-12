@@ -1,49 +1,60 @@
-import { AsciiLogo } from "@/components/terminal/ascii-logo"
-import { Cursor } from "@/components/terminal/cursor"
-import { PromptLine } from "@/components/terminal/prompt-line"
+"use client"
+
+import { useState } from "react"
+
+import { CommandInput } from "@/components/terminal/command-input"
 import { Scrollback } from "@/components/terminal/scrollback"
 import { StatusBar } from "@/components/terminal/status-bar"
+import { useIsDesktop } from "@/hooks/use-is-desktop"
 import { LANDING } from "@/lib/copy/site"
+import { complete } from "@/lib/shell/commands"
 
 import { BootLine } from "./components/boot-line"
+import { ShellLine } from "./components/shell-line"
+import { useSession } from "./use-session"
 
 /**
- * Kit 5B — what the terminal is showing when you land. `cycwai play` sits
- * pre-filled at the prompt, so the only thing left to do is press return.
+ * Kit 5B, live. The session opens having already run `cycwai --help`, so the
+ * usage screen is on the scrollback and the prompt below it is real.
  */
 export function HomeScreen() {
+  const { lines, history, run } = useSession()
+  const [draft, setDraft] = useState("cycwai play")
+  const isDesktop = useIsDesktop()
+
+  function submit(command: string) {
+    run(command)
+    setDraft("")
+  }
+
   return (
     <>
-      <Scrollback className="flex-1">
+      <Scrollback className="flex-1" revision={lines.length}>
         <BootLine />
 
-        <PromptLine className="mt-2.5">cycwai --help</PromptLine>
+        {lines.map((line) => (
+          <ShellLine key={line.id} line={line} />
+        ))}
 
-        <AsciiLogo className="mt-3" />
-
-        <div className="mt-1.5 font-display text-[13px] font-bold text-term-ink">
-          {LANDING.headline}
-          <Cursor glyph="underscore" />
-        </div>
-
-        <p className="mt-3 max-w-[52ch] text-term-muted">{LANDING.tagline}</p>
-
-        <div className="mt-3.5 text-term-faint">USAGE</div>
-        <dl className="pl-4 text-term-muted">
-          {LANDING.usage.map((row) => (
-            <div key={row.command} className="flex flex-wrap gap-x-2">
-              <dt className="w-40 shrink-0 text-term-accent">{row.command}</dt>
-              <dd>{row.description}</dd>
-            </div>
-          ))}
-        </dl>
-
-        <PromptLine className="mt-4" cursor>
-          cycwai play
-        </PromptLine>
+        <CommandInput
+          value={draft}
+          onChange={setDraft}
+          onSubmit={submit}
+          onComplete={complete}
+          history={history}
+          // The mobile branch is in the DOM too; a hidden terminal must not
+          // steal focus and pop a keyboard over the "use a laptop" notice.
+          active={isDesktop}
+        />
       </Scrollback>
 
-      <StatusBar hints={[{ key: "⏎", label: LANDING.startHint }]} />
+      <StatusBar
+        hints={[
+          { key: "⏎", label: LANDING.startHint },
+          { key: "tab", label: "complete" },
+          { key: "^U", label: "clear line" },
+        ]}
+      />
     </>
   )
 }
