@@ -40,18 +40,20 @@ export const LANDING = {
     "5 questions. 3 lives. No Copilot. No tabs. Just you and whatever's left of your brain.",
   headline: "can you code without AI?",
   /**
-   * `cycwai login` is listed first because login is required — the kit had it
-   * second and optional, which no longer matches the flow.
+   * `cycwai play` is listed first because it is the only one that has to
+   * work. Login saves runs and remembers your handle; the game does not wait
+   * for it.
    */
   usage: [
-    { command: "cycwai login", description: "sign in — required to play" },
     { command: "cycwai play", description: "start — 5 levels, 3 lives" },
+    { command: "cycwai login", description: "sign in — optional, saves runs" },
   ],
   startHint: "start the run — we both know why you're here",
   footer: "made by @abhish_3k · no cookies · no tracking · just judgement",
 } as const
 
 export const SHELL_COPY = {
+  starting: "starting run…",
   notAuthenticated: "not authenticated.",
   needsAccount: "your handle comes from your account, and the card needs it.",
   loginFirst: "run `cycwai login` first.",

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 import { CommandInput } from "@/components/terminal/command-input"
 import { Scrollback } from "@/components/terminal/scrollback"
@@ -18,9 +19,17 @@ import { useSession } from "./use-session"
  * usage screen is on the scrollback and the prompt below it is real.
  */
 export function HomeScreen() {
-  const { lines, history, run } = useSession()
+  const { lines, history, navigate, run } = useSession()
   const [draft, setDraft] = useState("cycwai play")
   const isDesktop = useIsDesktop()
+  const router = useRouter()
+
+  // `cycwai play` hands over to /play. The line it printed stays on screen
+  // for the moment the route takes to open, which is what running a command
+  // that launches something looks like.
+  useEffect(() => {
+    if (navigate) router.push(navigate)
+  }, [navigate, router])
 
   function submit(command: string) {
     run(command)

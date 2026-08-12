@@ -1,20 +1,21 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 
+import { useTerminalFocus } from "@/hooks/use-terminal-focus"
 import { cn } from "@/lib/utils"
 import { SHELL } from "@/types/terminal"
+
+import { CaretMirror, useTerminalCaret } from "./caret"
 
 /**
  * A real `<input>`, not a keydown-captured fake. That is what buys backspace,
  * text selection, ⌥←/→ word jumps, undo, and a working caret for free — all
  * of which a hand-rolled key handler gets wrong.
  *
- * The native caret is hidden and a `▍` drawn in its place. The block is
- * positioned by a mirror span holding the text *before* the caret in the same
- * font, so it lands exactly right at any caret index without measuring
- * anything. Monospace makes the trick exact; the mirror makes it robust to
- * mid-string editing, which a width calculation would not be.
+ * This is the shell's command line specifically: prompt prefix, history, tab
+ * completion. Prompted fields inside the game use `TerminalField`, which
+ * shares the caret but none of the shell behaviour.
  */
 export function CommandInput({
   value,
@@ -37,35 +38,13 @@ export function CommandInput({
   className?: string
 }>) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [caret, setCaret] = useState(0)
-  const [focused, setFocused] = useState(false)
+  const { caret, setCaret, focused, syncCaret, caretProps } =
+    useTerminalCaret(inputRef)
 
   /** null = editing a fresh line; a number indexes back from history's end. */
   const [historyOffset, setHistoryOffset] = useState<number | null>(null)
 
-  const syncCaret = useCallback(() => {
-    setCaret(inputRef.current?.selectionStart ?? 0)
-  }, [])
-
-  // A terminal is always focused. Clicking anywhere that isn't a link or a
-  // selection puts the caret back in the command line.
-  useEffect(() => {
-    if (!active) return
-
-    inputRef.current?.focus()
-
-    function onPointerUp(event: PointerEvent) {
-      if (window.getSelection()?.toString()) return
-
-      const target = event.target as HTMLElement | null
-      if (target?.closest("a, button, input, textarea, [role='option']")) return
-
-      inputRef.current?.focus()
-    }
-
-    window.addEventListener("pointerup", onPointerUp)
-    return () => window.removeEventListener("pointerup", onPointerUp)
-  }, [active])
+  useTerminalFocus(inputRef, active)
 
   function recall(offset: number | null) {
     setHistoryOffset(offset)
@@ -150,11 +129,7 @@ export function CommandInput({
             syncCaret()
           }}
           onKeyDown={onKeyDown}
-          onKeyUp={syncCaret}
-          onSelect={syncCaret}
-          onClick={syncCaret}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          {...caretProps}
           disabled={!active}
           spellCheck={false}
           autoCapitalize="off"
@@ -164,21 +139,7 @@ export function CommandInput({
           className="w-full caret-transparent outline-none"
         />
 
-        {/* The caret. Mirrors the text before it to land in the right cell. */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 whitespace-pre"
-        >
-          <span className="invisible">{value.slice(0, caret)}</span>
-          <span
-            className={cn(
-              "text-term-accent",
-              focused ? "animate-blink" : "opacity-40"
-            )}
-          >
-            ▍
-          </span>
-        </span>
+        <CaretMirror before={value.slice(0, caret)} focused={focused} />
       </div>
     </div>
   )

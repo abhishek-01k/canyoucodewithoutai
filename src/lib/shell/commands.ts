@@ -14,6 +14,8 @@ export interface CommandResult {
   output: ShellLineBody[]
   /** Wipes the scrollback, the way `clear` does in a real shell. */
   clear?: boolean
+  /** A route to hand over to. The shell prints nothing and the game opens. */
+  navigate?: string
 }
 
 /** Collapses runs of whitespace so `cycwai   play` still resolves. */
@@ -44,17 +46,14 @@ export function runCommand(input: string): CommandResult {
     }
   }
 
-  if (command === "cycwai play") {
+  // Login is a nicety, not a gate — the run works logged out and asks for a
+  // handle itself, so the only thing an account would buy today is
+  // remembering it for you. Restoring the gate means printing
+  // SHELL_COPY.notAuthenticated here instead of navigating.
+  if (command === "cycwai play" || command === "cycwai init") {
     return {
-      output: [
-        {
-          kind: "text",
-          text: `✗ ${SHELL_COPY.notAuthenticated}`,
-          tone: "danger",
-        },
-        { kind: "text", text: SHELL_COPY.needsAccount, tone: "muted" },
-        { kind: "text", text: SHELL_COPY.loginFirst, tone: "faint" },
-      ],
+      output: [{ kind: "text", text: SHELL_COPY.starting, tone: "accent" }],
+      navigate: "/play",
     }
   }
 

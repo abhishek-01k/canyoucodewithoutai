@@ -10,6 +10,8 @@ interface SessionState {
   /** Newest last. Only successful, non-empty, non-repeated entries. */
   history: string[]
   nextId: number
+  /** Set by a command that hands over to a route. Cleared once obeyed. */
+  navigate: string | null
 }
 
 type SessionAction = { type: "run"; command: string }
@@ -33,6 +35,7 @@ function init(): SessionState {
     lines: openingLines(0),
     history: ["cycwai --help"],
     nextId: INITIAL_LINES.length,
+    navigate: null,
   }
 }
 
@@ -49,6 +52,7 @@ function reducer(state: SessionState, action: SessionAction): SessionState {
       lines: openingLines(state.nextId),
       history: appendHistory(state.history, command),
       nextId: state.nextId + INITIAL_LINES.length,
+      navigate: null,
     }
   }
 
@@ -65,6 +69,7 @@ function reducer(state: SessionState, action: SessionAction): SessionState {
     lines: [...state.lines, ...lines],
     history: appendHistory(state.history, command),
     nextId: id,
+    navigate: result.navigate ?? null,
   }
 }
 
@@ -82,5 +87,10 @@ export function useSession() {
     dispatch({ type: "run", command })
   }, [])
 
-  return { lines: state.lines, history: state.history, run }
+  return {
+    lines: state.lines,
+    history: state.history,
+    navigate: state.navigate,
+    run,
+  }
 }
