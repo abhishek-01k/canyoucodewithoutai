@@ -44,6 +44,7 @@ export function DesktopScene({
       <div className="hidden min-h-svh flex-col items-center justify-start pt-16 md:flex">
         <TerminalWindow
           tone={tone}
+          draggable
           className="h-[calc(100svh-12rem)] max-h-[760px] min-h-[420px] w-[940px] max-w-[92vw]"
         >
           {children}
