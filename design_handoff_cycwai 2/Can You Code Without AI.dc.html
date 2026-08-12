@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #070b08; color: #d8e6d8; font-family: 'IBM Plex Mono', monospace; }
+  a { color: #3ef26a; } a:hover { color: #7dffa3; }
+  ::selection { background: #3ef26a; color: #04170a; }
+  @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+  @keyframes slamIn { 0% { transform: scale(1.25); opacity: 0; } 60% { transform: scale(.97); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes lifeBreak { 0% { transform: scale(1); } 30% { transform: scale(1.6) rotate(18deg); } 60% { transform: scale(.7) rotate(-14deg); } 100% { transform: scale(1) rotate(0); } }
+  @keyframes pulseGlow { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #070b08; display: flex; flex-direction: column; align-items: center; position: relative; overflow-x: hidden;">
+  <sc-if value="{{crt}}" hint-placeholder-val="{{true}}">
+    <div style="position: fixed; inset: 0; pointer-events: none; z-index: 60; background: repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0px, rgba(0,0,0,.16) 1px, transparent 1px, transparent 3px);"></div>
+    <div style="position: fixed; inset: 0; pointer-events: none; z-index: 60; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.45) 100%);"></div>
+  </sc-if>
+
+  <sc-if value="{{isLanding}}" hint-placeholder-val="{{true}}">
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; width: 100%; max-width: 680px; padding: 48px 20px 32px; box-sizing: border-box;">
+      <div style="color: #55705a; font-size: 13px; margin-bottom: 20px;">~/canyoucodewithoutai.xyz</div>
+      <h1 style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: clamp(30px, 8vw, 56px); line-height: 1.1; margin: 0 0 20px; color: #3ef26a; text-shadow: 0 0 18px rgba(62,242,106,.4); text-wrap: pretty;">{{typed}}<span style="animation: blink 1s step-end infinite;">▮</span></h1>
+      <p style="font-size: 15px; line-height: 1.6; color: #a9bfac; margin: 0 0 28px; max-width: 46ch; text-wrap: pretty;">5 questions. 3 lives. No Copilot. No tabs. Just you and whatever's left of your brain.</p>
+      <div style="width: 100%; background: #0d130e; border: 1px solid #1e2b20; padding: 16px 18px; box-sizing: border-box; margin-bottom: 28px; display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+        <div style="display: flex; gap: 10px;"><span style="color: #3ef26a;">$</span><span>5 levels. CSS, HTTP, git, regex, cron.</span></div>
+        <div style="display: flex; gap: 10px;"><span style="color: #3ef26a;">$</span><span>3 lives. Wrong answer = lose one.</span></div>
+        <div style="display: flex; gap: 10px;"><span style="color: #3ef26a;">$</span><span>Lose them all and AI officially wins.</span></div>
+      </div>
+      <button onClick="{{start}}" style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: 18px; background: #3ef26a; color: #04170a; border: none; padding: 16px 36px; cursor: pointer; box-shadow: 0 0 24px rgba(62,242,106,.35); min-height: 56px;" style-hover="background: #7dffa3;" style-focus="outline: 2px solid #d8e6d8; outline-offset: 3px;">&gt; prove it</button>
+    </div>
+    <div style="width: 100%; max-width: 680px; padding: 16px 20px 28px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; color: #55705a; flex-wrap: wrap;">
+      <span>made by @two_takes_only</span>
+      <button onClick="{{copyChallenge}}" style="font-family: inherit; font-size: 12px; background: none; border: 1px solid #1e2b20; color: #7d9482; padding: 8px 14px; cursor: pointer; min-height: 36px;" style-hover="border-color: #3ef26a; color: #3ef26a;" style-focus="outline: 2px solid #3ef26a; outline-offset: 2px;">{{challengeLabel}}</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isGame}}" hint-placeholder-val="{{false}}">
+    <div style="width: 100%; max-width: 860px; padding: 20px 20px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;">
+      <div data-screen-label="HUD" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 1px solid #1e2b20; background: #0d130e; padding: 12px 16px; position: sticky; top: 10px; z-index: 40;">
+        <div style="font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; color: #3ef26a;">LEVEL {{level}}/5 <span style="color: #55705a; font-weight: 400;">— {{levelName}}</span></div>
+        <div style="display: flex; gap: 10px; font-size: 20px;">
+          <sc-for list="{{livesArr}}" as="lf" hint-placeholder-count="3">
+            <sc-if value="{{lf.alive}}" hint-placeholder-val="{{true}}"><span style="color: #3ef26a; text-shadow: 0 0 10px rgba(62,242,106,.6);">●</span></sc-if>
+            <sc-if value="{{lf.dead}}" hint-placeholder-val="{{false}}"><span style="color: #ff5c5c; animation: lifeBreak .5s ease;">✕</span></sc-if>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="border: 1px solid #1e2b20; background: #0d130e; padding: 20px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 12px; color: #55705a;">$ question --level {{level}}</div>
+        <div style="font-family: 'Space Mono', monospace; font-size: clamp(16px, 4vw, 20px); font-weight: 700; line-height: 1.5; color: #d8e6d8; text-wrap: pretty;">{{prompt}}</div>
+      </div>
+
+      <sc-if value="{{isL1}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+          <div style="flex: 1 1 300px; display: flex; flex-direction: column; gap: 12px; min-width: 0;">
+            <div style="border: 1px solid #1e2b20; background: #0a0f0b;">
+              <div style="font-size: 11px; color: #55705a; padding: 8px 12px; border-bottom: 1px solid #1e2b20;">index.html — locked 🔒</div>
+              <pre style="margin: 0; padding: 12px; font-size: 13px; line-height: 1.6; color: #8fa893; overflow-x: auto;">&lt;div class="container"&gt;
+  &lt;div class="box"&gt;&lt;/div&gt;
+&lt;/div&gt;</pre>
+            </div>
+            <div style="border: 1px solid #1e2b20; background: #0a0f0b; display: flex; flex-direction: column;">
+              <div style="font-size: 11px; color: #55705a; padding: 8px 12px; border-bottom: 1px solid #1e2b20;">styles.css — yours. base: .container height is locked at 220px, .box is 64×64.</div>
+              <textarea value="{{l1css}}" onChange="{{onL1}}" spellCheck="{{false}}" placeholder=".container {&#10;&#10;}" aria-label="CSS editor" style="width: 100%; box-sizing: border-box; min-height: 180px; background: transparent; border: none; resize: vertical; color: #d8e6d8; font-family: 'IBM Plex Mono', monospace; font-size: 14px; line-height: 1.6; padding: 12px;" style-focus="outline: 2px solid #3ef26a; outline-offset: -2px;"></textarea>
+            </div>
+          </div>
+          <div style="flex: 1 1 300px; min-width: 0;">
+            <div style="border: 1px solid #1e2b20; background: #0a0f0b;">
+              <div style="font-size: 11px; color: #55705a; padding: 8px 12px; border-bottom: 1px solid #1e2b20;">live preview</div>
+              <div style="padding: 12px;">
+                <div ref="{{l1cRef}}" class="container" style="height: 220px; border: 1px dashed #2a3a2c; position: relative; box-sizing: border-box;">
+                  <div ref="{{l1bRef}}" class="box" style="width: 64px; height: 64px; background: #ff5c5c;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isL2}}" hint-placeholder-val="{{false}}">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+          <sc-for list="{{opts}}" as="o" hint-placeholder-count="4">
+            <sc-if value="{{o.sel}}" hint-placeholder-val="{{false}}">
+              <button onClick="{{o.pick}}" style="font-family: 'Space Mono', monospace; text-align: left; background: #12271a; border: 2px solid #3ef26a; color: #d8e6d8; padding: 18px 16px; cursor: pointer; min-height: 64px; box-shadow: 0 0 16px rgba(62,242,106,.25);" style-focus="outline: 2px solid #d8e6d8; outline-offset: 2px;"><span style="font-size: 22px; font-weight: 700; color: #3ef26a;">{{o.code}}</span><span style="display: block; font-size: 13px; color: #a9bfac; margin-top: 4px;">{{o.label}}</span></button>
+            </sc-if>
+            <sc-if value="{{o.unsel}}" hint-placeholder-val="{{true}}">
+              <button onClick="{{o.pick}}" style="font-family: 'Space Mono', monospace; text-align: left; background: #0d130e; border: 2px solid #1e2b20; color: #d8e6d8; padding: 18px 16px; cursor: pointer; min-height: 64px;" style-hover="border-color: #41543f;" style-focus="outline: 2px solid #3ef26a; outline-offset: 2px;"><span style="font-size: 22px; font-weight: 700; color: #7d9482;">{{o.code}}</span><span style="display: block; font-size: 13px; color: #7d9482; margin-top: 4px;">{{o.label}}</span></button>
+            </sc-if>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isL3}}" hint-placeholder-val="{{false}}">
+        <div style="border: 1px solid #1e2b20; background: #0a0f0b;">
+          <div style="font-size: 11px; color: #55705a; padding: 8px 12px; border-bottom: 1px solid #1e2b20; display: flex; gap: 8px; align-items: center;"><span style="width: 9px; height: 9px; border-radius: 50%; background: #ff5c5c; display: inline-block;"></span><span style="width: 9px; height: 9px; border-radius: 50%; background: #ffc857; display: inline-block;"></span><span style="width: 9px; height: 9px; border-radius: 50%; background: #3ef26a; display: inline-block;"></span><span style="margin-left: 6px;">you@yourmachine: ~/project (main)</span></div>
+          <div style="display: flex; padding: 12px; gap: 10px;">
+            <div style="color: #3ef26a; font-size: 14px; line-height: 1.7; user-select: none;">$</div>
+            <textarea value="{{l3text}}" onChange="{{onL3}}" spellCheck="{{false}}" placeholder="type your command(s), one per line" aria-label="terminal input" style="flex: 1; min-height: 110px; background: transparent; border: none; resize: vertical; color: #d8e6d8; font-family: 'IBM Plex Mono', monospace; font-size: 14px; line-height: 1.7; padding: 0;" style-focus="outline: 2px solid #3ef26a; outline-offset: 4px;"></textarea>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isL4}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <div style="flex: 1 1 240px; display: flex; align-items: center; border: 1px solid #1e2b20; background: #0a0f0b; padding: 0 12px;">
+              <span style="color: #55705a; font-size: 14px;">^</span>
+              <input value="{{l4pattern}}" onChange="{{onL4}}" spellCheck="{{false}}" placeholder="your pattern — no slashes, no flags" aria-label="regex pattern" style="flex: 1; background: transparent; border: none; color: #d8e6d8; font-family: 'IBM Plex Mono', monospace; font-size: 15px; padding: 14px 8px; min-width: 0;" style-focus="outline: none;">
+              <span style="color: #55705a; font-size: 14px;">$</span>
+            </div>
+            <div style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: 16px; padding: 10px 16px; border: 1px solid {{scoreBorder}}; color: {{scoreColor}}; white-space: nowrap;">{{l4score}}/10</div>
+          </div>
+          <sc-if value="{{l4invalid}}" hint-placeholder-val="{{false}}">
+            <div style="font-size: 13px; color: #ffc857;">⚠ that pattern doesn't compile yet. keep typing.</div>
+          </sc-if>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+            <div style="border: 1px solid #1e2b20; background: #0d130e; padding: 14px 16px;">
+              <div style="font-size: 11px; color: #55705a; margin-bottom: 10px;">// should match</div>
+              <sc-for list="{{rowsM}}" as="r" hint-placeholder-count="5">
+                <div style="display: flex; gap: 10px; align-items: baseline; font-size: 13.5px; line-height: 2; min-width: 0;">
+                  <sc-if value="{{r.ok}}" hint-placeholder-val="{{false}}"><span style="color: #3ef26a; font-weight: 700;">✓</span></sc-if>
+                  <sc-if value="{{r.bad}}" hint-placeholder-val="{{false}}"><span style="color: #ff5c5c; font-weight: 700;">✗</span></sc-if>
+                  <sc-if value="{{r.none}}" hint-placeholder-val="{{true}}"><span style="color: #41543f;">·</span></sc-if>
+                  <span style="overflow-wrap: anywhere;">{{r.email}}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border: 1px solid #1e2b20; background: #0d130e; padding: 14px 16px;">
+              <div style="font-size: 11px; color: #55705a; margin-bottom: 10px;">// should reject</div>
+              <sc-for list="{{rowsR}}" as="r" hint-placeholder-count="5">
+                <div style="display: flex; gap: 10px; align-items: baseline; font-size: 13.5px; line-height: 2; min-width: 0;">
+                  <sc-if value="{{r.ok}}" hint-placeholder-val="{{false}}"><span style="color: #3ef26a; font-weight: 700;">✓</span></sc-if>
+                  <sc-if value="{{r.bad}}" hint-placeholder-val="{{false}}"><span style="color: #ff5c5c; font-weight: 700;">✗</span></sc-if>
+                  <sc-if value="{{r.none}}" hint-placeholder-val="{{true}}"><span style="color: #41543f;">·</span></sc-if>
+                  <span style="overflow-wrap: anywhere;">{{r.email}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #55705a;">pattern is auto-anchored (^…$) and must match the full string. wrong submit costs a life — lock it in when you're sure.</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isL5}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <input value="{{l5text}}" onChange="{{onL5}}" onKeyDown="{{onL5Key}}" spellCheck="{{false}}" placeholder="_ _ _ _ _" aria-label="cron expression" style="width: 100%; box-sizing: border-box; background: #0a0f0b; border: 1px solid #1e2b20; color: #d8e6d8; font-family: 'Space Mono', monospace; font-weight: 700; font-size: clamp(20px, 6vw, 32px); padding: 18px 16px; letter-spacing: .08em;" style-focus="outline: 2px solid #3ef26a; outline-offset: 2px;">
+          <div style="display: flex; gap: 0; font-size: 11px; color: #41543f; justify-content: space-between; max-width: 420px; padding: 0 4px;"><span>min</span><span>hour</span><span>day</span><span>month</span><span>weekday</span></div>
+        </div>
+      </sc-if>
+
+      <button onClick="{{submit}}" style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: 17px; background: #3ef26a; color: #04170a; border: none; padding: 16px 32px; cursor: pointer; min-height: 56px; align-self: stretch; box-shadow: 0 0 20px rgba(62,242,106,.25);" style-hover="background: #7dffa3;" style-focus="outline: 2px solid #d8e6d8; outline-offset: 3px;">&gt; submit answer</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isEnd}}" hint-placeholder-val="{{false}}">
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; max-width: 640px; padding: 48px 20px; box-sizing: border-box; gap: 24px; text-align: center;">
+      <sc-if value="{{isGameover}}" hint-placeholder-val="{{true}}">
+        <div style="font-size: 12px; color: #ff5c5c; letter-spacing: .2em;">FATAL: HUMAN_EXCEPTION</div>
+        <h1 style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: clamp(32px, 9vw, 60px); line-height: 1.1; margin: 0; color: #ff5c5c; text-shadow: 0 0 22px rgba(255,92,92,.4); animation: slamIn .35s cubic-bezier(.2,1.4,.4,1);">AI has won over you.</h1>
+        <p style="margin: 0; font-size: 15px; color: #a9bfac; line-height: 1.6; text-wrap: pretty;">Defeated by: Level {{diedLevel}} — {{diedName}}<br>Uninstall nothing — just reflect.</p>
+      </sc-if>
+      <sc-if value="{{isVictory}}" hint-placeholder-val="{{false}}">
+        <div style="font-size: 12px; color: #3ef26a; letter-spacing: .2em;">EXIT CODE 0</div>
+        <h1 style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: clamp(32px, 9vw, 60px); line-height: 1.1; margin: 0; color: #3ef26a; text-shadow: 0 0 22px rgba(62,242,106,.4); animation: slamIn .35s cubic-bezier(.2,1.4,.4,1);">You can still code. For now.</h1>
+        <p style="margin: 0; font-size: 15px; color: #a9bfac; line-height: 1.6;">{{victoryScore}}</p>
+      </sc-if>
+
+      <div style="width: 100%; max-width: 440px; border: 2px solid {{endAccent}}; background: #0a0f0b; padding: 24px 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; text-align: left; box-shadow: 0 0 32px rgba(0,0,0,.6);">
+        <div style="font-size: 12px; color: #55705a;">canyoucodewithoutai.xyz</div>
+        <div style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: 22px; line-height: 1.3; color: {{endAccent}};">{{cardVerdict}}</div>
+        <div style="display: flex; gap: 8px;">
+          <sc-for list="{{squares}}" as="sq" hint-placeholder-count="5">
+            <div style="width: 34px; height: 34px; background: {{sq.color}};"></div>
+          </sc-for>
+        </div>
+        <div style="font-size: 13px; color: #a9bfac;">{{cardLine}}</div>
+      </div>
+
+      <pre style="width: 100%; max-width: 440px; box-sizing: border-box; margin: 0; border: 1px dashed #1e2b20; background: #0d130e; color: #a9bfac; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.7; padding: 14px 16px; text-align: left; white-space: pre-wrap;">{{shareText}}</pre>
+
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+        <button onClick="{{copyResult}}" style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: 15px; background: {{endAccent}}; color: #060a07; border: none; padding: 14px 24px; cursor: pointer; min-height: 52px;" style-focus="outline: 2px solid #d8e6d8; outline-offset: 3px;">{{copyResultLabel}}</button>
+        <button onClick="{{restart}}" style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: 15px; background: none; color: #d8e6d8; border: 1px solid #41543f; padding: 14px 24px; cursor: pointer; min-height: 52px;" style-hover="border-color: #d8e6d8;" style-focus="outline: 2px solid #3ef26a; outline-offset: 3px;">try again</button>
+        <sc-if value="{{isVictory}}"><button onClick="{{copyChallenge}}" style="font-family: 'Space Mono', monospace; font-size: 15px; background: none; color: #7d9482; border: 1px solid #1e2b20; padding: 14px 24px; cursor: pointer; min-height: 52px;" style-hover="border-color: #3ef26a; color: #3ef26a;" style-focus="outline: 2px solid #3ef26a; outline-offset: 3px;">{{challengeLabel}}</button></sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{modalOpen}}" hint-placeholder-val="{{false}}">
+    <div style="position: fixed; inset: 0; z-index: 100; background: rgba(3,6,4,.78); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; padding: 20px;">
+      <sc-if value="{{isSwear}}" hint-placeholder-val="{{true}}">
+        <div role="dialog" aria-label="integrity check" style="width: 100%; max-width: 420px; background: #0d130e; border: 2px solid #ffc857; padding: 26px 24px; box-sizing: border-box; animation: slamIn .28s cubic-bezier(.2,1.4,.4,1); box-shadow: 0 0 40px rgba(255,200,87,.15);">
+          <div style="font-size: 11px; color: #ffc857; letter-spacing: .18em; margin-bottom: 14px;">⚠ INTEGRITY CHECK</div>
+          <div style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: 20px; line-height: 1.45; color: #d8e6d8; margin-bottom: 22px; text-wrap: pretty;">{{swearText}}</div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button onClick="{{onSwear}}" autoFocus="{{true}}" style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: 16px; background: #ffc857; color: #241a04; border: none; padding: 14px 20px; cursor: pointer; min-height: 52px;" style-hover="background: #ffd985;" style-focus="outline: 2px solid #d8e6d8; outline-offset: 3px;">I swear 🙏</button>
+            <button onClick="{{onEscape}}" style="font-family: inherit; font-size: 14px; background: none; color: #7d9482; border: 1px solid #1e2b20; padding: 12px 20px; cursor: pointer; min-height: 44px;" style-hover="color: #d8e6d8;" style-focus="outline: 2px solid #3ef26a; outline-offset: 2px;">{{escapeText}}</button>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{isChecking}}" hint-placeholder-val="{{false}}">
+        <div style="width: 100%; max-width: 420px; background: #0d130e; border: 1px solid #1e2b20; padding: 30px 24px; box-sizing: border-box; text-align: center;">
+          <div style="font-family: 'Space Mono', monospace; font-size: 16px; color: #a9bfac; animation: pulseGlow .8s ease infinite;">🤖 checking if AI helped you...</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{isCorrectV}}" hint-placeholder-val="{{false}}">
+        <div role="dialog" aria-label="verdict" style="width: 100%; max-width: 440px; background: #0d130e; border: 2px solid #3ef26a; padding: 26px 24px; box-sizing: border-box; animation: slamIn .28s cubic-bezier(.2,1.4,.4,1); box-shadow: 0 0 44px rgba(62,242,106,.2);">
+          <div style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: 15px; color: #3ef26a; letter-spacing: .06em; margin-bottom: 14px;">✓ PASSED — humanity: intact</div>
+          <div style="font-size: 16px; line-height: 1.6; color: #d8e6d8; margin-bottom: 8px; text-wrap: pretty;">{{verdictBody}}</div>
+          <sc-if value="{{verdictNote}}" hint-placeholder-val="{{false}}"><div style="font-size: 13px; color: #ffc857; margin-bottom: 8px;">{{verdictNote}}</div></sc-if>
+          <button onClick="{{onVerdictNext}}" autoFocus="{{true}}" style="margin-top: 14px; width: 100%; font-family: 'Space Mono', monospace; font-weight: 700; font-size: 16px; background: #3ef26a; color: #04170a; border: none; padding: 14px 20px; cursor: pointer; min-height: 52px;" style-hover="background: #7dffa3;" style-focus="outline: 2px solid #d8e6d8; outline-offset: 3px;">{{verdictBtn}}</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{isWrongV}}" hint-placeholder-val="{{false}}">
+        <div role="dialog" aria-label="verdict" style="width: 100%; max-width: 440px; background: #0d130e; border: 2px solid #ff5c5c; padding: 26px 24px; box-sizing: border-box; animation: slamIn .28s cubic-bezier(.2,1.4,.4,1); box-shadow: 0 0 44px rgba(255,92,92,.2);">
+          <div style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: 15px; color: #ff5c5c; letter-spacing: .06em; margin-bottom: 14px;">$ verdict: WRONG</div>
+          <div style="font-size: 16px; line-height: 1.6; color: #d8e6d8; margin-bottom: 14px; text-wrap: pretty;">{{verdictBody}}</div>
+          <div style="font-size: 13px; color: #ff9d9d; border: 1px dashed #4a2222; background: #170c0c; padding: 10px 12px;">{{lifeBanner}}</div>
+          <button onClick="{{onVerdictNext}}" autoFocus="{{true}}" style="margin-top: 18px; width: 100%; font-family: 'Space Mono', monospace; font-weight: 700; font-size: 16px; background: #ff5c5c; color: #1c0505; border: none; padding: 14px 20px; cursor: pointer; min-height: 52px;" style-hover="background: #ff8484;" style-focus="outline: 2px solid #d8e6d8; outline-offset: 3px;">{{verdictBtn}}</button>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startingLives&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 3, &quot;min&quot;: 1, &quot;max&quot;: 5, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Game rules&quot;}, &quot;swearGag&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Game rules&quot;}, &quot;crtEffects&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Look&quot;}}">
+class Component extends DCLogic {
+  state = { screen: 'landing', typed: '', level: 1, livesLost: 0, results: ['p','p','p','p','p'], wrong: 0, modal: null, l1: '', l2: null, l3: '', l4: '', l5: '', copied: '', diedLevel: 0 };
+
+  NAMES = ['center a div', 'the 403', 'commit your changes', 'email regex', 'the cron job'];
+  PROMPTS = [
+    'Center the red box inside its container. Horizontally AND vertically. Write the CSS.',
+    'Your request has valid authentication, but the server still refuses to serve the resource. Which status code fits?',
+    "You have uncommitted changes. Stage everything and commit with the message 'fixed bug'. Write the command(s), one per line.",
+    'Write a regex that correctly classifies all 10 of these emails. Pattern only — no slashes, no flags. Must match the full string.',
+    'Write a cron expression that runs a task every day at 9:00 AM. Expression only.'
+  ];
+  SWEARS = [
+    "Swear on God you didn't use AI for this.",
+    'Swear on your Stack Overflow reputation.',
+    'Swear on your dotfiles.',
+    'Swear on your mechanical keyboard.',
+    'Swear on your prod database.'
+  ];
+  ESCAPES = ['...let me check one thing', '...one quick google', '...brb', "...define 'AI'", '...actually hold on'];
+  PRAISE = [
+    'The div is centered. Somewhere, a 2015 Stack Overflow answer smiles.',
+    '403. The server knows exactly who you are. You knew that.',
+    "Committed. No AI. No git commit -m 'asdfgh'. Growth.",
+    '10/10. You just out-regexed your own autocomplete.',
+    '0 9 * * *. You absolute machine. Ironically.'
+  ];
+  DEFEATS = ['centering a div. In 2026.', 'an HTTP status code. There were four options.', 'a git commit. Two commands.', 'an email regex. Fair, honestly.', 'a cron expression. The final boss.'];
+  T4 = [
+    ['hello@gmail.com', 1], ['dev.user@company.co.in', 1], ['user+tag@service.io', 1], ['a_b-c@domain.org', 1], ['x@y.dev', 1],
+    ['plainaddress', 0], ['@nodomain.com', 0], ['user@', 0], ['user @space.com', 0], ['user@domain', 0]
+  ];
+  OPTS = [['400', 'Bad Request'], ['401', 'Unauthorized'], ['403', 'Forbidden'], ['404', 'Not Found']];
+
+  max() { return this.props.startingLives ?? 3; }
+  reduced() { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+
+  componentDidMount() {
+    this.st = document.createElement('style');
+    document.head.appendChild(this.st);
+    const t = 'can you code without AI?';
+    if (this.reduced()) { this.setState({ typed: t }); return; }
+    let i = 0;
+    this.ti = setInterval(() => { i++; this.setState({ typed: t.slice(0, i) }); if (i >= t.length) clearInterval(this.ti); }, 50);
+  }
+  componentWillUnmount() { clearInterval(this.ti); if (this.st) this.st.remove(); }
+
+  compileL4(p) {
+    if (!p.trim()) return { re: null, invalid: false };
+    try { return { re: new RegExp('^(?:' + p + ')$'), invalid: false }; } catch (e) { return { re: null, invalid: true }; }
+  }
+
+  gradeL1() {
+    if (!this.state.l1.trim()) return { ok: false, body: 'You wrote no CSS. The div remains uncentered. As is tradition.' };
+    const c = this.l1c && this.l1c.getBoundingClientRect(), b = this.l1b && this.l1b.getBoundingClientRect();
+    if (!c || !b || b.width === 0 || b.height === 0) return { ok: false, body: "The box is gone. That's one way to center it. Not the accepted way." };
+    const dx = Math.abs((b.left + b.width / 2) - (c.left + c.width / 2));
+    const dy = Math.abs((b.top + b.height / 2) - (c.top + c.height / 2));
+    const inside = b.top >= c.top - 2 && b.bottom <= c.bottom + 2 && b.left >= c.left - 2 && b.right <= c.right + 2;
+    if (dx <= 4 && dy <= 4 && inside) return { ok: true };
+    if (dx <= 4 && !(dy <= 4)) return { ok: false, body: 'Horizontal: yes. Vertical: the div remains uncentered. As is tradition.' };
+    return { ok: false, body: 'The div remains uncentered. As is tradition.' };
+  }
+  gradeL2() {
+    const p = this.state.l2;
+    if (p === 2) return { ok: true };
+    const roasts = {
+      0: '400 is for malformed requests. The request was fine. The answer was not.',
+      1: "Close. 401 is when the server doesn't know who you are. It knows exactly who you are. It just doesn't like you.",
+      3: "404 means the server couldn't find it. It found it. It's just not for you."
+    };
+    return { ok: false, body: roasts[p] };
+  }
+  gradeL3() {
+    const lines = this.state.l3.split('\n').map(s => s.trim().replace(/^\$\s*/, '')).filter(Boolean);
+    const am = lines.some(l => /^git\s+commit\s+-am\s+(['"])fixed bug\1$/i.test(l));
+    const add = lines.some(l => /^git\s+add\s+(\.|-A|--all)$/.test(l));
+    const commit = lines.some(l => /^git\s+commit\s+-m\s+(['"])fixed bug\1$/i.test(l));
+    if (am) return { ok: true, note: "-am, though. Efficient. Lazy. We'll allow it." };
+    if (add && commit) return { ok: true };
+    if (add && lines.some(l => /^git\s+commit/i.test(l))) return { ok: false, body: "Your commit message was wrong. This is how repos end up with 47 commits called 'fix'." };
+    if (!add && lines.some(l => /^git\s+commit/i.test(l))) return { ok: false, body: 'You committed nothing. Nothing was staged. git status would have told you. So would AI.' };
+    return { ok: false, body: 'git is not mad. git is just disappointed.' };
+  }
+  gradeL4() {
+    const { re, invalid } = this.compileL4(this.state.l4);
+    if (invalid || !re) return { ok: false, body: "That's not even valid regex. AI is laughing." };
+    const score = this.T4.filter(([e, w]) => re.test(e) === !!w).length;
+    if (score === 10) return { ok: true };
+    if (score === 9) return { ok: false, body: '9/10. So close. That last email is laughing at you.' };
+    return { ok: false, body: score + '/10. The pattern has opinions. All of them wrong.' };
+  }
+  gradeL5() {
+    const raw = this.state.l5.trim();
+    if (/^@daily$/i.test(raw)) return { ok: false, body: '@daily runs at midnight. Your standup is not at midnight. Yet.' };
+    if (/^@/.test(raw)) return { ok: false, body: 'Nice macro. The question said expression. Five fields. By hand.' };
+    const f = raw.split(/\s+/).filter(Boolean);
+    if (f.length === 6) return { ok: false, body: "That's Quartz syntax, you enterprise Java person. Unix cron has 5 fields." };
+    if (f.length !== 5) return { ok: false, body: 'Cron has 5 fields. You gave me ' + f.length + '. AI knows this.' };
+    const [m, h, d, mo, w] = f;
+    if (/^0?9$/.test(m) && /^0?0$/.test(h)) return { ok: false, body: 'Congratulations, your job now runs at 12:09 AM. Sleep well.' };
+    if (/^0?0$/.test(m) && /^0?9$/.test(h) && d === '*' && mo === '*' && w === '*') return { ok: true };
+    if (/^0?0$/.test(m) && /^0?9$/.test(h)) return { ok: false, body: 'Minute and hour were fine until you touched the calendar fields. * * * — leave them alone.' };
+    return { ok: false, body: 'That runs at... something. Not 9:00 AM. crontab.guru would know. So would AI.' };
+  }
+
+  hasAnswer() {
+    const s = this.state;
+    return [s.l1.trim(), s.l2 !== null, s.l3.trim(), s.l4.trim(), s.l5.trim()][s.level - 1];
+  }
+  submit = () => {
+    if (!this.hasAnswer()) return;
+    if (this.props.swearGag === false) return this.check();
+    this.setState({ modal: { t: 'swear' } });
+  };
+  onSwear = () => this.check();
+  check() {
+    this.setState({ modal: { t: 'check' } });
+    setTimeout(() => this.runVerdict(), this.reduced() ? 80 : 550);
+  }
+  runVerdict() {
+    const g = this['gradeL' + this.state.level]();
+    if (g.ok) {
+      this.setState({ modal: { t: 'v', ok: true, body: this.PRAISE[this.state.level - 1], note: g.note || false } });
+    } else {
+      const ll = this.state.livesLost + 1;
+      this.setState({ livesLost: ll, wrong: this.state.wrong + 1, modal: { t: 'v', ok: false, body: g.body, dead: ll >= this.max() } });
+    }
+  }
+  onVerdictNext = () => {
+    const m = this.state.modal, s = this.state;
+    if (m.ok) {
+      const results = s.results.slice();
+      results[s.level - 1] = s.wrong > 0 ? 's' : 'c';
+      if (s.level === 5) this.setState({ results, modal: null, screen: 'victory' });
+      else this.setState({ results, modal: null, level: s.level + 1, wrong: 0 });
+    } else if (m.dead) {
+      const results = s.results.slice();
+      results[s.level - 1] = 'd';
+      this.setState({ results, modal: null, diedLevel: s.level, screen: 'gameover' });
+    } else {
+      this.setState({ modal: null });
+    }
+  };
+  restart = () => {
+    if (this.st) this.st.textContent = '';
+    this.setState({ screen: 'game', level: 1, livesLost: 0, results: ['p','p','p','p','p'], wrong: 0, modal: null, l1: '', l2: null, l3: '', l4: '', l5: '', copied: '', diedLevel: 0 });
+  };
+  copy(key, text) {
+    const done = () => { this.setState({ copied: key }); clearTimeout(this.ct); this.ct = setTimeout(() => this.setState({ copied: '' }), 1800); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, done); else done();
+  }
+
+  renderVals() {
+    const s = this.state, max = this.max();
+    const { re, invalid } = this.compileL4(s.l4);
+    const mkRow = ([e, w]) => ({ email: e, ok: !!(re && re.test(e) === !!w), bad: !!(re && re.test(e) !== !!w), none: !re });
+    const rows = this.T4.map(mkRow);
+    const score = rows.filter(r => r.ok).length;
+    const sqColor = { c: '#3ef26a', s: '#ffc857', d: '#ff5c5c', p: '#1c261e' };
+    const cleared = s.results.filter(r => r === 'c' || r === 's').length;
+    const livesLeft = max - s.livesLost;
+    const emoji = { c: '🟩', s: '🟨', d: '🟥', p: '⬛' };
+    const isVictory = s.screen === 'victory';
+    const line = isVictory ? `I can still code. ${livesLeft}/${max} lives intact.` : `I survived ${cleared}/5 before AI won.`;
+    const shareText = 'canyoucodewithoutai.xyz\n' + s.results.map(r => emoji[r]).join(' ') + '\n' + line;
+    const m = s.modal;
+    return {
+      crt: this.props.crtEffects ?? true,
+      isLanding: s.screen === 'landing', isGame: s.screen === 'game',
+      isEnd: isVictory || s.screen === 'gameover', isVictory, isGameover: s.screen === 'gameover',
+      typed: s.typed,
+      start: () => this.setState({ screen: 'game' }),
+      level: s.level, levelName: this.NAMES[s.level - 1], prompt: this.PROMPTS[s.level - 1],
+      isL1: s.level === 1, isL2: s.level === 2, isL3: s.level === 3, isL4: s.level === 4, isL5: s.level === 5,
+      livesArr: Array.from({ length: max }, (_, i) => ({ alive: i < livesLeft, dead: i >= livesLeft })),
+      l1css: s.l1,
+      onL1: (e) => { const v = e.target.value; if (this.st) this.st.textContent = '#l1prev-scope { ' + v + ' }'; this.setState({ l1: v }); },
+      l1cRef: (el) => { this.l1c = el; if (el && el.parentElement) el.parentElement.id = 'l1prev-scope'; },
+      l1bRef: (el) => { this.l1b = el; },
+      opts: this.OPTS.map(([code, label], i) => ({ code, label, sel: s.l2 === i, unsel: s.l2 !== i, pick: () => this.setState({ l2: i }) })),
+      l3text: s.l3, onL3: (e) => this.setState({ l3: e.target.value }),
+      l4pattern: s.l4, onL4: (e) => this.setState({ l4: e.target.value }),
+      l4invalid: invalid, l4score: score,
+      scoreColor: score === 10 ? '#3ef26a' : invalid ? '#ffc857' : '#7d9482',
+      scoreBorder: score === 10 ? '#3ef26a' : '#1e2b20',
+      rowsM: rows.slice(0, 5), rowsR: rows.slice(5),
+      l5text: s.l5, onL5: (e) => this.setState({ l5: e.target.value }),
+      onL5Key: (e) => { if (e.key === 'Enter') this.submit(); },
+      submit: this.submit,
+      modalOpen: !!m,
+      isSwear: !!m && m.t === 'swear', isChecking: !!m && m.t === 'check',
+      isCorrectV: !!m && m.t === 'v' && m.ok, isWrongV: !!m && m.t === 'v' && !m.ok,
+      swearText: this.SWEARS[s.level - 1], escapeText: this.ESCAPES[s.level - 1],
+      onSwear: this.onSwear, onEscape: () => this.setState({ modal: null }),
+      verdictBody: m && m.body || '', verdictNote: m && m.note || false,
+      verdictBtn: m && m.ok ? (s.level === 5 ? 'claim victory →' : 'next level →') : (m && m.dead ? 'accept defeat →' : 'try again'),
+      lifeBanner: m && m.dead ? '💀 0 lives left. It has your commit history.' : '💔 −1 life. AI is taking notes.',
+      onVerdictNext: this.onVerdictNext,
+      diedLevel: s.diedLevel, diedName: this.DEFEATS[(s.diedLevel || 1) - 1],
+      victoryScore: livesLeft === max ? `Flawless run. ${livesLeft}/${max} lives intact. Log off while you're ahead.` : `${livesLeft}/${max} lives intact. Bruised, but human.`,
+      endAccent: isVictory ? '#3ef26a' : '#ff5c5c',
+      cardVerdict: isVictory ? 'I can still code without AI.' : 'AI has won over me.',
+      cardLine: line,
+      squares: s.results.map(r => ({ color: sqColor[r] })),
+      shareText,
+      copyResult: () => this.copy('result', shareText),
+      copyResultLabel: s.copied === 'result' ? 'copied ✓' : 'copy result',
+      copyChallenge: () => this.copy('chal', 'think you can code without AI? prove it → canyoucodewithoutai.xyz'),
+      challengeLabel: s.copied === 'chal' ? 'copied ✓' : (s.screen === 'victory' ? 'challenge a friend' : 'share this'),
+      restart: this.restart
+    };
+  }
+}
+</script>
+</body>
+</html>
