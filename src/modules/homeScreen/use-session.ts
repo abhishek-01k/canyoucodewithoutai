@@ -21,9 +21,13 @@ const INITIAL_LINES: ShellLineBody[] = [
   { kind: "blank" },
 ]
 
+function openingLines(startId: number): ShellLine[] {
+  return INITIAL_LINES.map((body, offset) => ({ ...body, id: startId + offset }))
+}
+
 function init(): SessionState {
   return {
-    lines: INITIAL_LINES.map((body, id) => ({ ...body, id })),
+    lines: openingLines(0),
     history: ["cycwai --help"],
     nextId: INITIAL_LINES.length,
   }
@@ -33,9 +37,16 @@ function reducer(state: SessionState, action: SessionAction): SessionState {
   const command = action.command.trim()
   const result = runCommand(command)
 
-  // `clear` keeps history — that's what a real shell does.
+  // `clear` drops back to the opening screen rather than to a blank one.
+  // A bare prompt would take the logo and the usage table with it, and those
+  // are the page's identity — this is a landing page as much as a shell.
+  // History survives, as it does in a real shell.
   if (result.clear) {
-    return { ...state, lines: [], history: appendHistory(state.history, command) }
+    return {
+      lines: openingLines(state.nextId),
+      history: appendHistory(state.history, command),
+      nextId: state.nextId + INITIAL_LINES.length,
+    }
   }
 
   const appended: ShellLineBody[] = [{ kind: "command", text: command }, ...result.output]

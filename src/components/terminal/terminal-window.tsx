@@ -1,8 +1,27 @@
 "use client"
 
-import { useWindowDrag } from "@/hooks/use-window-drag"
+import { useRef } from "react"
+
+import { useTerminalGrid } from "@/hooks/use-terminal-grid"
+import {
+  RESIZE_DIRECTIONS,
+  useWindowFrame,
+  type ResizeDirection,
+} from "@/hooks/use-window-frame"
 import { cn } from "@/lib/utils"
-import { SHELL } from "@/types/terminal"
+import { SHELL, shellTitle } from "@/types/terminal"
+
+/** Hit areas sit just inside the border, as on a real window. */
+const HANDLE_CLASS: Record<ResizeDirection, string> = {
+  n: "top-0 inset-x-3 h-1.5 cursor-ns-resize",
+  s: "bottom-0 inset-x-3 h-1.5 cursor-ns-resize",
+  e: "right-0 inset-y-3 w-1.5 cursor-ew-resize",
+  w: "left-0 inset-y-3 w-1.5 cursor-ew-resize",
+  ne: "top-0 right-0 size-3 cursor-nesw-resize",
+  nw: "top-0 left-0 size-3 cursor-nwse-resize",
+  se: "bottom-0 right-0 size-3 cursor-nwse-resize",
+  sw: "bottom-0 left-0 size-3 cursor-nesw-resize",
+}
 
 /**
  * The window the product lives in (kit 5A). Always carries its chrome — it
@@ -16,35 +35,37 @@ export function TerminalWindow({
   children,
   title,
   tone = "default",
-  draggable = false,
+  interactive = false,
   className,
 }: Readonly<{
   children: React.ReactNode
-  /** Defaults to the full zsh title; pass a short one for narrow windows. */
+  /** Overrides the live title. Pass a short one for narrow windows. */
   title?: string
   tone?: "default" | "dead"
-  /** Drag by the title bar, like a real window. Desktop only. */
-  draggable?: boolean
+  /** Drag by the title bar and resize from the edges. Desktop only. */
+  interactive?: boolean
   className?: string
 }>) {
   const dead = tone === "dead"
-  const label = title ?? (dead ? SHELL.deadTitle : SHELL.title)
-  const { windowRef, offset, dragging, dragHandleProps } =
-    useWindowDrag(draggable)
+  const bodyRef = useRef<HTMLDivElement>(null)
+
+  const { windowRef, style, active, dragHandleProps, resizeHandleProps } =
+    useWindowFrame(interactive)
+  const grid = useTerminalGrid(bodyRef)
+
+  const label = title ?? (dead ? SHELL.deadTitle : shellTitle(grid))
 
   return (
     <div
       ref={windowRef}
-      style={{
-        transform: offset.x || offset.y ? `translate3d(${offset.x}px, ${offset.y}px, 0)` : undefined,
-      }}
+      style={style}
       className={cn(
-        "flex flex-col rounded-window border shadow-window backdrop-blur-[28px]",
+        "relative flex flex-col overflow-hidden rounded-window border shadow-window backdrop-blur-[28px]",
         dead
           ? "border-[#3d2320] bg-[rgba(19,13,12,.94)]"
           : "border-white/12 bg-[rgba(13,15,11,.92)]",
-        // Text selection inside the scrollback must not fight the drag.
-        dragging && "select-none",
+        // Text selection inside the scrollback must not fight a gesture.
+        active && "select-none",
         className
       )}
     >
@@ -52,10 +73,10 @@ export function TerminalWindow({
           handle: on a mac you move a window by its title bar and nothing
           else. */}
       <div
-        {...(draggable ? dragHandleProps : {})}
+        {...(interactive ? dragHandleProps : {})}
         className={cn(
           "relative flex h-10 flex-none items-center border-b border-black/50 bg-linear-to-b from-white/[.09] to-white/[.03] px-[14px]",
-          draggable && "touch-none"
+          interactive && "touch-none"
         )}
       >
         <span className="flex flex-none gap-2" data-no-drag aria-hidden>
@@ -66,7 +87,7 @@ export function TerminalWindow({
 
         <span
           className={cn(
-            "pointer-events-none absolute inset-x-16 truncate text-center font-ui text-[13px]",
+            "pointer-events-none absolute inset-x-16 truncate text-center font-ui text-[13px] tabular-nums",
             dead ? "text-term-danger-soft/80" : "text-white/65"
           )}
         >
@@ -74,9 +95,26 @@ export function TerminalWindow({
         </span>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col px-5 pt-4 pb-5 text-[13.5px]/[1.8] md:px-[26px] md:pt-5 md:pb-[26px]">
+      <div
+        ref={bodyRef}
+        className="relative flex min-h-0 flex-1 flex-col px-5 pt-4 pb-5 text-[13.5px]/[1.8] md:px-[26px] md:pt-5 md:pb-[26px]"
+      >
         {children}
       </div>
+
+      {interactive
+        ? RESIZE_DIRECTIONS.map((direction) => (
+            <span
+              key={direction}
+              {...resizeHandleProps(direction)}
+              aria-hidden
+              className={cn(
+                "absolute z-20 touch-none",
+                HANDLE_CLASS[direction]
+              )}
+            />
+          ))
+        : null}
     </div>
   )
 }
