@@ -397,8 +397,9 @@ export const SHARE = {
   /** What the test is. The one line a stranger needs to get the joke. */
   pitch: "Can you code without AI? 5 questions and only 3 lives, prove that you still know how to code.", // prettier-ignore
 
-  /** The dare, sitting directly above the link because that is what it points at. */
-  dare: "think you'd do better? prove it:",
+  /** The dare, then the link it points at, each on its own line. */
+  dare: "think you'd do better?",
+  prove: (url: string) => `prove it: ${url}`,
   friendDare: "I dare you:",
 
   challenged: "copied ✓ — now go send it to someone who needs humbling.",

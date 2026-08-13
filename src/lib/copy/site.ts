@@ -49,7 +49,12 @@ export const LANDING = {
     { command: "cycwai login", description: "sign in — optional, saves runs" },
   ],
   startHint: "start the run — we both know why you're here",
-  footer: "made by @abhish_3k · no cookies · no tracking · just judgement",
+  /**
+   * "no tracking" stopped being true the moment Vercel Analytics went in.
+   * It is cookieless and anonymous, so "no cookies" still holds — but the
+   * site counts page views now, and the footer should not say otherwise.
+   */
+  footer: "made by @abhish_3k · no cookies · no accounts · just judgement",
 } as const
 
 export const SHELL_COPY = {

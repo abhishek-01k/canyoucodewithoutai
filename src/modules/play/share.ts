@@ -4,14 +4,6 @@ import { FINAL_LEVEL, RANKS, SHARE, STARTING_LIVES, type RankCopy } from "./copy
 import { encodeResult } from "./result-code"
 import { clearedCount, type GameState, type Result } from "./state"
 
-/** 🟩 clean · 🟨 cleared after losing a life · 🟥 died here · ⬛ unreached. */
-const SQUARE: Record<Result, string> = {
-  clean: "🟩",
-  scuffed: "🟨",
-  died: "🟥",
-  pending: "⬛",
-}
-
 /**
  * One rank per level cleared, best first: clear all five and you are rank 1,
  * and every level short of that costs you a rank. Nothing below rank 1 is
@@ -24,7 +16,7 @@ export function rankFor(results: Result[]): RankCopy {
 }
 
 export interface ShareResult {
-  /** The Wordle-shaped block, exactly as it should land in a post. */
+  /** The post, exactly as it should land on X or in a LinkedIn box. */
   block: string
   /** This run's page — the one that unfurls into the card. */
   url: string
@@ -37,29 +29,24 @@ export interface ShareResult {
 }
 
 /**
- * The result, in the one format everything downstream uses — the copy button
- * and both share intents post exactly this, so a post and the card its link
- * unfurls into can never disagree.
+ * The result, in the one format everything downstream uses — both share
+ * intents post exactly this, so a post and the card its link unfurls into can
+ * never disagree.
  *
- * The post is written for the reader, not the player: almost everyone who
- * sees it has never heard of this site, and a row of coloured squares means
- * nothing on its own. So it says what the run was, then what the test is,
- * then dares them into it, then hands them the link — in that order, because
- * a dare that lands before the reader knows what they're being dared to do is
- * just noise.
+ * Three lines: what the run was, the dare, the link. The picture is doing the
+ * rest of the work — X and LinkedIn turn that link into the player's rank
+ * card, which says more about the run than a paragraph would.
  */
 export function buildShare(state: GameState): ShareResult {
   const line = SHARE.line(clearedCount(state.results))
-  const squares = state.results.map((r) => SQUARE[r]).join(" ")
 
-  // The link goes last and is the *only* link: X unfurls one URL per post and
-  // picks which one itself, so leading with the bare domain — which reads as a
-  // link, `.xyz` being a real TLD — is how a post ends up previewing the
-  // homepage instead of the run. The domain is inside this URL anyway.
+  // The run's page, not the site's: this is the URL that unfurls into *their*
+  // card. It is also the only link in the post, because X previews one URL
+  // per post and chooses which itself.
   const url = resultUrl(state)
 
   return {
-    block: `${squares}\n${line}\n\n${SHARE.pitch}\n\n${SHARE.dare}\n${url}`,
+    block: `${line}\n\n${SHARE.dare}\n\n${SHARE.prove(url)}`,
     url,
     squares: state.results,
     livesLeft: STARTING_LIVES - state.livesLost,
