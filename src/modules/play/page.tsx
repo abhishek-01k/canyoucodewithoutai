@@ -16,11 +16,12 @@ import {
   linkedinIntent,
   tweetIntent,
 } from "./share"
-import type { GameState } from "./state"
+import { canGiveUp, type GameState } from "./state"
 import { useGame } from "./use-game"
 
 import { GameLine } from "./components/game-line"
 import { GameOver } from "./components/game-over"
+import { GiveUp } from "./components/give-up"
 import { LevelPane } from "./components/level-pane"
 import { StartScreen } from "./components/start-screen"
 import { CheckingLine, SwearCheck } from "./components/swear-check"
@@ -77,9 +78,18 @@ function PlayScreen({ game }: Readonly<{ game: ReturnType<typeof useGame> }>) {
   const ended = state.phase === "gameover" || state.phase === "victory"
   const result = ended ? buildShare(state) : null
 
+  const giveUpOffered = canGiveUp(state)
+
   // ⏎ on a verdict is the only way forward — it advances, retries, or ends
-  // the run depending on what the verdict was.
+  // the run depending on what the verdict was. esc is the only way out, and
+  // only from a miss that left them standing.
   useKeypress(playing && state.phase === "verdict", (event) => {
+    if (event.key === "Escape" && giveUpOffered) {
+      event.preventDefault()
+      game.giveUp()
+      return
+    }
+
     if (event.key !== "Enter") return
     event.preventDefault()
     game.advance()
@@ -150,6 +160,9 @@ function PlayScreen({ game }: Readonly<{ game: ReturnType<typeof useGame> }>) {
         {state.attempt.map((line) => (
           <GameLine key={line.id} line={line} />
         ))}
+
+        {/* Under the verdict it belongs to, where the eye already is. */}
+        {giveUpOffered ? <GiveUp onGiveUp={game.giveUp} /> : null}
 
         {state.phase === "swear" ? (
           <SwearCheck

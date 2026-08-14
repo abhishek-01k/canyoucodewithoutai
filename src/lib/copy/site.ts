@@ -15,8 +15,8 @@ export const SITE = {
  * rather than in the component so adding a social is a one-line edit.
  */
 export const KNOW_MORE = {
-  folder: "Know More",
-  title: "know_more",
+  folder: "About Me",
+  title: "about_me",
   name: "Abhishek Singh",
   role: "built this instead of sleeping",
   email: "abhishekkumar214567@gmail.com",
@@ -33,6 +33,100 @@ export const KNOW_MORE = {
     { id: "github", label: "GitHub", href: "https://github.com/abhishek-01k" },
     { id: "linkedin", label: "LinkedIn", href: "" },
   ],
+} as const
+
+/**
+ * The Mail app in the dock. It is a real contact form wearing a terminal's
+ * clothes — everything a visitor types is posted to /api/mail and forwarded
+ * to the address below, with their own address set as the reply-to.
+ */
+export const MAIL = {
+  /** Window title. The dock tooltip still just says "Mail". */
+  title: "mail — new message",
+  to: KNOW_MORE.email,
+  intro: "say anything. it lands in his inbox, not in a database.",
+  labels: {
+    to: "to:",
+    from: "from:",
+    name: "name:",
+    subject: "subject:",
+  },
+  placeholders: {
+    from: "you@wherever.com",
+    name: "who's writing",
+    subject: "what this is about",
+    message: "type the message. ⌘⏎ sends it.",
+  },
+  send: "send",
+  sending: "sending…",
+  hint: "⌘⏎ to send · esc to close",
+  sent: {
+    title: "sent.",
+    body: (email: string) => `any reply comes back to ${email}.`,
+    again: "write another",
+    close: "close",
+  },
+  errors: {
+    from: "put a real address in — a reply has to go somewhere.",
+    name: "a name, even a fake one.",
+    message: "the message is empty.",
+    tooLong: (field: string, max: number) =>
+      `${field} is over ${max} characters.`,
+    failed: "the send failed. try again in a moment.",
+    offline: "couldn't reach the server. check your connection.",
+    throttled: "that's enough mail for now. try again later.",
+  },
+} as const
+
+/**
+ * The Music widget. `playlist` is a YouTube (or YouTube Music) playlist id —
+ * the `list=` value out of the URL. Swap it for your own and nothing else has
+ * to change. Leave it empty and the widget falls back to `video`, which is
+ * the lofi radio stream everyone writes code to.
+ *
+ * It has to be a YouTube id either way: music.youtube.com refuses to be
+ * embedded, but its playlists are YouTube playlists and play fine here.
+ */
+export const MUSIC = {
+  title: "Music",
+  playlist: "PLBYjrvd44-CA",
+  video: "",
+  nowPlaying: "the playlist",
+  station: "something to code to",
+  /**
+   * Where the volume starts, out of 100. Nobody's first second on a website
+   * should be a jump scare, so it is loud enough to hear and no louder; the
+   * slider goes higher only if the visitor asks for it.
+   */
+  volume: 80,
+  /**
+   * Start the playlist the moment someone lands. Browsers refuse unmuted
+   * autoplay from a page the visitor has never interacted with, so this is a
+   * request rather than a guarantee — the player asks on load, and asks again
+   * on the first click or keystroke, which is where it usually takes. Set it
+   * false and the site is silent until someone presses play.
+   */
+  autoplay: true,
+  /** Shown while the player is still fetching the first track. */
+  loading: "cueing up…",
+  /** Both ids empty: say so, rather than framing YouTube's own error. */
+  unset: {
+    title: "nothing queued.",
+    body: "drop a playlist id into MUSIC in src/lib/copy/site.ts.",
+  },
+  volumeLabel: "Volume",
+  muteLabel: "Mute",
+  unmuteLabel: "Unmute",
+} as const
+
+export const CALENDAR = {
+  title: "Calendar",
+  /** Sunday first, the way macOS ships. */
+  weekdays: ["S", "M", "T", "W", "T", "F", "S"],
+} as const
+
+export const CLOCK = {
+  title: "Clock",
 } as const
 
 export const LANDING = {

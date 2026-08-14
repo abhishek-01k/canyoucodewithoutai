@@ -4,6 +4,12 @@ import Image from "next/image"
 import { useMemo, useRef, useState } from "react"
 
 import { useReducedMotion } from "@/hooks/use-reduced-motion"
+import { cn } from "@/lib/utils"
+import { CalendarWidget } from "@/modules/calendarWidget/page"
+import { ClockWidget } from "@/modules/clockWidget/page"
+import { MailApp } from "@/modules/mailApp/page"
+import { useMusic } from "@/modules/music/player"
+import { MusicWidget } from "@/modules/musicWidget/page"
 
 /**
  * Geometry. Every number the dock draws is derived from these, so the
@@ -23,18 +29,16 @@ type DockApp = {
   id: string
   label: string
   src: string
-  /** The one icon that means anything: it gets the glow and the dot. */
+  /** cycwai itself: the icon that gets the glow whether or not it's clicked. */
   running?: true
 }
 
 const APPS: readonly DockApp[] = [
   { id: "finder", label: "Finder", src: "/icons/Finder.png" },
-  { id: "safari", label: "Safari", src: "/icons/Safari.png" },
   { id: "mail", label: "Mail", src: "/icons/Mail.png" },
   { id: "music", label: "Music", src: "/icons/Music.png" },
   { id: "calendar", label: "Calendar", src: "/icons/calender.png" },
   { id: "clock", label: "Clock", src: "/icons/Clock.png" },
-  { id: "settings", label: "System Settings", src: "/icons/Settings.png" },
   {
     id: "terminal",
     label: "Terminal — cycwai",
@@ -42,6 +46,23 @@ const APPS: readonly DockApp[] = [
     running: true,
   },
 ]
+
+/**
+ * The apps that are apps. Everything else in the row is scenery, and being in
+ * this table is the only thing that makes a tile clickable — so an icon can
+ * never end up looking live with nothing behind it.
+ */
+type AppWindow = React.ComponentType<{
+  anchor: DOMRect | null
+  onClosed: () => void
+}>
+
+const WINDOWS: Readonly<Record<string, AppWindow>> = {
+  mail: MailApp,
+  music: MusicWidget,
+  calendar: CalendarWidget,
+  clock: ClockWidget,
+}
 
 const TRASH = { id: "trash", label: "Trash", src: "/icons/Trash Full.png" }
 
@@ -117,6 +138,9 @@ export function Dock() {
   const pressRef = useRef<{ id: string; from: number; startX: number } | null>(
     null
   )
+  /** Which apps are up, and the tile rect each of them grew out of. */
+  const [open, setOpen] = useState<ReadonlyMap<string, DOMRect>>(new Map())
+  const music = useMusic()
 
   const apps = useMemo(
     () => order.map((id) => APP_BY_ID.get(id)!).filter(Boolean),
@@ -175,6 +199,32 @@ export function Dock() {
     setPointerX(event.clientX - restingLeft)
   }
 
+  /**
+   * A tile opens its window from where the tile is standing, so the window can
+   * grow out of it. The event stops here: the terminal behind puts the caret
+   * back on any click that isn't a control, and it must not take focus off a
+   * window that just opened to be typed in.
+   *
+   * Clicking a tile whose window is already up does nothing, which is what
+   * makes the widgets toggle: their own click-away has already closed them by
+   * the time this runs.
+   */
+  function launch(id: string, tile: HTMLElement, event: React.SyntheticEvent) {
+    if (!WINDOWS[id] || open.has(id)) return
+    event.stopPropagation()
+
+    const rect = tile.getBoundingClientRect()
+    setOpen((current) => new Map(current).set(id, rect))
+  }
+
+  function shut(id: string) {
+    setOpen((current) => {
+      const next = new Map(current)
+      next.delete(id)
+      return next
+    })
+  }
+
   function startPress(
     event: React.PointerEvent<HTMLDivElement>,
     index: number
@@ -210,7 +260,12 @@ export function Dock() {
     if (press && event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
-    if (drag === null) return // a plain click, nothing moved
+
+    // Nothing moved, so it was a click rather than a drag.
+    if (drag === null) {
+      if (press) launch(press.id, event.currentTarget, event)
+      return
+    }
 
     // Commit the order and hand the tile the distance it still has to travel,
     // so it slides into the slot instead of teleporting there. Two frames:
@@ -233,23 +288,23 @@ export function Dock() {
     return 0
   }
 
+  /** Where a tile has been carried to, on top of wherever flex put it. */
+  function carried(index: number, id: string) {
+    if (drag?.id === id) return drag.dx
+    if (settling?.id === id) return settling.dx
+    return displacement(index)
+  }
+
   function tileStyle(index: number, id: string) {
     const held = drag?.id === id
     const landing = settling?.id === id
-    let dx = layout.offsets[index]
+    const dx = layout.offsets[index] + carried(index, id)
     let dy = 0
     let scale = layout.scales[index]
 
-    if (held) {
-      dx += drag!.dx
+    if (held || landing) {
       dy = -LIFT
       scale = 1.1
-    } else if (landing) {
-      dx += settling!.dx
-      dy = -LIFT
-      scale = 1.1
-    } else {
-      dx += displacement(index)
     }
 
     return {
@@ -274,17 +329,16 @@ export function Dock() {
     return pointerX === null ? "320ms" : "130ms"
   }
 
-  const terminalIndex = apps.findIndex((app) => app.running)
-  const terminalId = terminalIndex === -1 ? null : apps[terminalIndex].id
-  const dotX =
-    terminalIndex === -1
-      ? 0
-      : layout.centers[terminalIndex] +
-        (drag?.id === terminalId
-          ? drag.dx
-          : settling?.id === terminalId
-            ? settling.dx
-            : displacement(terminalIndex))
+  /**
+   * cycwai is a command in the Terminal; the rest run while their window is
+   * up — except Music, which keeps running as long as it is playing, panel or
+   * no panel. That dot is the only thing on screen that says where the sound
+   * is coming from once the widget is shut.
+   */
+  function isRunning(app: DockApp) {
+    if (app.running === true || open.has(app.id)) return true
+    return app.id === "music" && music.playing
+  }
 
   const hoveredLabel =
     layout.hovered === -1
@@ -294,119 +348,157 @@ export function Dock() {
         : (apps[layout.hovered]?.label ?? null)
 
   return (
-    <div
-      className="absolute bottom-3 left-1/2 z-10 hidden -translate-x-1/2 rounded-dock border border-white/[.14] bg-[rgba(30,36,28,.42)] px-[14px] py-[10px] shadow-dock backdrop-blur-[24px] backdrop-saturate-150 md:block"
-      onPointerMove={trackPointer}
-      onPointerLeave={() => setPointerX(null)}
-    >
+    <>
       <div
-        ref={rowRef}
-        className="relative flex items-end"
-        style={{
-          gap: GAP,
-          height: BASE,
-          width: layout.width,
-          transitionProperty: "width",
-          transitionTimingFunction: "cubic-bezier(.22,1,.36,1)",
-          transitionDuration: motionDuration(false),
-        }}
+        className="absolute bottom-3 left-1/2 z-10 hidden -translate-x-1/2 rounded-dock border border-white/[.14] bg-[rgba(30,36,28,.42)] px-[14px] py-[10px] shadow-dock backdrop-blur-[24px] backdrop-saturate-150 md:block"
+        onPointerMove={trackPointer}
+        onPointerLeave={() => setPointerX(null)}
       >
-        {apps.map((app, index) => (
-          <div
-            key={app.id}
-            aria-hidden={!app.running || undefined}
-            role={app.running ? "img" : undefined}
-            aria-label={app.running ? `${app.label}, running` : undefined}
-            title={app.running ? app.label : undefined}
-            onPointerDown={(event) => startPress(event, index)}
-            onPointerMove={continuePress}
-            onPointerUp={endPress}
-            onPointerCancel={endPress}
-            style={tileStyle(index, app.id)}
-            className="relative flex-none cursor-grab touch-none select-none active:cursor-grabbing"
-          >
-            {/* The glow is a drop-shadow rather than a box-shadow so it hugs
+        <div
+          ref={rowRef}
+          className="relative flex items-end"
+          style={{
+            gap: GAP,
+            height: BASE,
+            width: layout.width,
+            transitionProperty: "width",
+            transitionTimingFunction: "cubic-bezier(.22,1,.36,1)",
+            transitionDuration: motionDuration(false),
+          }}
+        >
+          {apps.map((app, index) => (
+            <div
+              key={app.id}
+              // Scenery is hidden from screen readers. The tiles that mean
+              // something announce themselves, and the ones that open are
+              // reachable by keyboard — they are buttons in everything but
+              // tag name, since a <button> can't also be a drag handle here.
+              aria-hidden={!app.running && !WINDOWS[app.id] ? true : undefined}
+              role={
+                WINDOWS[app.id] ? "button" : app.running ? "img" : undefined
+              }
+              tabIndex={WINDOWS[app.id] ? 0 : undefined}
+              aria-label={
+                WINDOWS[app.id] && !isRunning(app)
+                  ? app.label
+                  : app.running || WINDOWS[app.id]
+                    ? `${app.label}, running`
+                    : undefined
+              }
+              title={app.running || WINDOWS[app.id] ? app.label : undefined}
+              onPointerDown={(event) => startPress(event, index)}
+              onPointerMove={continuePress}
+              onPointerUp={endPress}
+              onPointerCancel={endPress}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return
+                if (!WINDOWS[app.id]) return
+                event.preventDefault()
+                launch(app.id, event.currentTarget, event)
+              }}
+              style={tileStyle(index, app.id)}
+              className={cn(
+                "relative flex-none touch-none select-none",
+                WINDOWS[app.id]
+                  ? "cursor-pointer rounded-icon outline-offset-4"
+                  : "cursor-grab active:cursor-grabbing"
+              )}
+            >
+              {/* The glow is a drop-shadow rather than a box-shadow so it hugs
                 the icon's own silhouette instead of a square that isn't
                 there. */}
+              <Image
+                src={app.src}
+                alt=""
+                width={BASE * 2}
+                height={BASE * 2}
+                loading="eager"
+                draggable={false}
+                className={
+                  isRunning(app)
+                    ? "size-full object-contain drop-shadow-[0_0_11px_rgba(201,247,58,.55)]"
+                    : "size-full object-contain drop-shadow-[0_3px_6px_rgba(0,0,0,.35)]"
+                }
+              />
+            </div>
+          ))}
+
+          <div
+            aria-hidden
+            className="flex-none self-center bg-white/[.18]"
+            style={{
+              width: DIVIDER_W,
+              height: 38,
+              transform: `translateX(${layout.offsets[DIVIDER_INDEX]}px)`,
+              transitionProperty: "transform",
+              transitionTimingFunction: "cubic-bezier(.22,1,.36,1)",
+              transitionDuration: motionDuration(false),
+            }}
+          />
+
+          {/* Trash keeps its own section, the way macOS does — the divider is a
+            wall, not a suggestion, so it stays out of the drag order. */}
+          <div
+            aria-hidden
+            style={tileStyle(CELLS - 1, TRASH.id)}
+            className="relative flex-none touch-none select-none"
+          >
             <Image
-              src={app.src}
+              src={TRASH.src}
               alt=""
               width={BASE * 2}
               height={BASE * 2}
               loading="eager"
               draggable={false}
-              className={
-                app.running
-                  ? "size-full object-contain drop-shadow-[0_0_11px_rgba(201,247,58,.55)]"
-                  : "size-full object-contain drop-shadow-[0_3px_6px_rgba(0,0,0,.35)]"
-              }
+              className="size-full object-contain drop-shadow-[0_3px_6px_rgba(0,0,0,.35)]"
             />
           </div>
-        ))}
 
-        <div
-          aria-hidden
-          className="flex-none self-center bg-white/[.18]"
-          style={{
-            width: DIVIDER_W,
-            height: 38,
-            transform: `translateX(${layout.offsets[DIVIDER_INDEX]}px)`,
-            transitionProperty: "transform",
-            transitionTimingFunction: "cubic-bezier(.22,1,.36,1)",
-            transitionDuration: motionDuration(false),
-          }}
-        />
+          {/* macOS's own "running" marker. cycwai isn't a separate app — it is
+            a command running in this Terminal — and Mail earns a dot for as
+            long as its window is up. The dots live on the row rather than
+            inside the tiles so magnification can't drag them down through the
+            dock's floor. */}
+          {apps.map((app, index) =>
+            isRunning(app) ? (
+              <span
+                key={app.id}
+                aria-hidden
+                className="absolute bottom-[-8px] left-0 size-[3px] rounded-full bg-white/95"
+                style={{
+                  transform: `translateX(${layout.centers[index] + carried(index, app.id)}px) translateX(-50%)`,
+                  transitionProperty: "transform",
+                  transitionTimingFunction: "cubic-bezier(.22,1,.36,1)",
+                  transitionDuration: motionDuration(
+                    drag?.id === app.id || settling?.id === app.id
+                  ),
+                }}
+              />
+            ) : null
+          )}
 
-        {/* Trash keeps its own section, the way macOS does — the divider is a
-            wall, not a suggestion, so it stays out of the drag order. */}
-        <div
-          aria-hidden
-          style={tileStyle(CELLS - 1, TRASH.id)}
-          className="relative flex-none touch-none select-none"
-        >
-          <Image
-            src={TRASH.src}
-            alt=""
-            width={BASE * 2}
-            height={BASE * 2}
-            loading="eager"
-            draggable={false}
-            className="size-full object-contain drop-shadow-[0_3px_6px_rgba(0,0,0,.35)]"
-          />
+          {hoveredLabel && drag === null && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute bottom-full left-0 rounded-md border border-white/10 bg-[rgba(24,26,24,.92)] px-2 py-[3px] font-ui text-[11px] whitespace-nowrap text-white/90 shadow-panel"
+              style={{
+                transform: `translateX(${layout.centers[layout.hovered]}px) translateX(-50%)`,
+                marginBottom: BASE * (layout.scales[layout.hovered] - 1) + 12,
+              }}
+            >
+              {hoveredLabel}
+            </span>
+          )}
         </div>
-
-        {/* cycwai isn't a separate app — it is a command running in this
-            Terminal. The dot is macOS's own "running" marker, and it lives on
-            the row rather than inside the tile so magnification can't drag it
-            down through the dock's floor. */}
-        {terminalIndex !== -1 && (
-          <span
-            aria-hidden
-            className="absolute bottom-[-8px] left-0 size-[3px] rounded-full bg-white/95"
-            style={{
-              transform: `translateX(${dotX}px) translateX(-50%)`,
-              transitionProperty: "transform",
-              transitionTimingFunction: "cubic-bezier(.22,1,.36,1)",
-              transitionDuration: motionDuration(
-                drag?.id === terminalId || settling?.id === terminalId
-              ),
-            }}
-          />
-        )}
-
-        {hoveredLabel && drag === null && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute bottom-full left-0 rounded-md border border-white/10 bg-[rgba(24,26,24,.92)] px-2 py-[3px] font-ui text-[11px] whitespace-nowrap text-white/90 shadow-panel"
-            style={{
-              transform: `translateX(${layout.centers[layout.hovered]}px) translateX(-50%)`,
-              marginBottom: BASE * (layout.scales[layout.hovered] - 1) + 12,
-            }}
-          >
-            {hoveredLabel}
-          </span>
-        )}
       </div>
-    </div>
+
+      {/* Outside the bar on purpose: `backdrop-filter` makes the dock a
+        containing block for fixed positioning, so a window rendered inside it
+        would be pinned to the dock rather than to the screen. */}
+      {[...open].map(([id, rect]) => {
+        const Window = WINDOWS[id]
+        return <Window key={id} anchor={rect} onClosed={() => shut(id)} />
+      })}
+    </>
   )
 }

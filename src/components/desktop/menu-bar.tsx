@@ -1,6 +1,10 @@
 "use client"
 
 import { useNowByMinute } from "@/hooks/use-now"
+import { MUSIC } from "@/lib/copy/site"
+import { cn } from "@/lib/utils"
+import { useMusic } from "@/modules/music/player"
+import { SpeakerIcon } from "@/modules/musicWidget/page"
 
 const MENUS = ["File", "Edit", "View", "Window", "Help"]
 
@@ -17,9 +21,14 @@ function menuBarDate(now: Date): string {
   return now.toDateString().slice(0, 10)
 }
 
-/** The clock is the one live thing on the desktop. See `useNowByMinute`. */
+/**
+ * The clock is the one live thing on the desktop (see `useNowByMinute`) — and
+ * the speaker, which is a real control rather than the set dressing the wifi
+ * and battery are: it mutes the player without anyone having to open Music.
+ */
 export function MenuBar() {
   const now = useNowByMinute()
+  const music = useMusic()
 
   return (
     <div className="absolute inset-x-0 top-0 z-10 flex h-7 items-center gap-[18px] bg-[rgba(20,26,18,.55)] px-4 font-ui text-[13px] text-white/92 backdrop-blur-[20px] backdrop-saturate-150">
@@ -41,6 +50,30 @@ export function MenuBar() {
       ))}
 
       <span className="ml-auto flex items-center gap-4">
+        {/* Lit while something is actually coming out of it, so the icon
+            doubles as the answer to "is that me?" */}
+        <button
+          type="button"
+          onClick={music.toggleMute}
+          disabled={!music.queued}
+          aria-label={music.muted ? MUSIC.unmuteLabel : MUSIC.muteLabel}
+          aria-pressed={music.muted}
+          title={music.muted ? MUSIC.unmuteLabel : MUSIC.muteLabel}
+          className={cn(
+            "grid size-5 place-items-center rounded-full transition-colors outline-none",
+            "hover:bg-white/15 focus-visible:bg-white/15",
+            music.muted && "text-white/45",
+            !music.muted && music.playing && "text-term-accent",
+            music.queued ? "cursor-pointer" : "cursor-default opacity-40"
+          )}
+        >
+          <SpeakerIcon
+            muted={music.muted}
+            volume={music.volume}
+            className="size-[14px]"
+          />
+        </button>
+
         <svg
           width="16"
           height="12"

@@ -2,6 +2,7 @@ import type { TermTone } from "@/types/terminal"
 
 import {
   FINAL_LEVEL,
+  GIVE_UP,
   INIT,
   L2,
   LEVELS,
@@ -120,6 +121,21 @@ export function livesLeft(state: GameState): number {
   return STARTING_LIVES - state.livesLost
 }
 
+/**
+ * Whether the run can be walked away from right now: standing on a miss that
+ * cost a life but left them alive. Not offered before the first life is gone
+ * — there is nothing to give up on yet — and not offered on the last one,
+ * where the run is already over and ⏎ is the only honest key left.
+ */
+export function canGiveUp(state: GameState): boolean {
+  return (
+    state.phase === "verdict" &&
+    state.lastVerdict !== null &&
+    !state.lastVerdict.ok &&
+    !state.lastVerdict.dead
+  )
+}
+
 /** Levels reached without dying — the number the share line brags about. */
 export function clearedCount(results: Result[]): number {
   return results.filter((r) => r === "clean" || r === "scuffed").length
@@ -177,6 +193,7 @@ export type GameAction =
   | { type: "flinch" }
   | { type: "verdict"; grade: Grade }
   | { type: "advance" }
+  | { type: "give-up" }
   | { type: "restart" }
 
 /** Four digits, stable for the life of a run — it goes on the share card. */
@@ -432,6 +449,39 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         { kind: "blank" },
         ...levelHeader(retrying, state.level),
       ])
+    }
+
+    /**
+     * Walking away, offered on a survivable miss (see `canGiveUp`). The level
+     * they stopped on counts as the one that got them, because it did — but
+     * the lives they never spent stay unspent, and the card reports both.
+     * Rewriting the run to look like a death would be a nicer number and a
+     * worse record.
+     */
+    case "give-up": {
+      if (!canGiveUp(state)) return state
+
+      const results = state.results.slice()
+      results[state.level - 1] = "died"
+
+      return flush(
+        {
+          ...state,
+          phase: "gameover",
+          results,
+          diedLevel: state.level,
+          lastVerdict: null,
+        },
+        [
+          { kind: "command", text: GIVE_UP.command },
+          {
+            kind: "text",
+            text: GIVE_UP.abandoned(state.level, livesLeft(state)),
+            tone: "danger",
+          },
+          { kind: "blank" },
+        ]
+      )
     }
 
     // A fresh run keeps the handle — they already told us who they are — and

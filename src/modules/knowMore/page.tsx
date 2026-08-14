@@ -1,8 +1,9 @@
 "use client"
 
 import Image from "next/image"
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useState } from "react"
 
+import { useEscapeToClose, WindowPop } from "@/components/desktop/window-pop"
 import { TerminalWindow } from "@/components/terminal/terminal-window"
 import { KNOW_MORE } from "@/lib/copy/site"
 import { cn } from "@/lib/utils"
@@ -16,19 +17,6 @@ const SOCIAL_MARK: Record<string, string> = {
     "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.454C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z",
 }
 
-/** Small enough to read as a point, not as a shrunken window. */
-const SEED_SCALE = 0.04
-
-/**
- * Slow enough to watch. The window is coming out of a folder in the corner
- * and crossing most of the screen to do it — at a UI-standard 200ms that
- * journey reads as a flash rather than as a movement.
- */
-const OPEN = "transform 620ms cubic-bezier(.16,1,.3,1), opacity 300ms ease-out"
-
-/** Closing is faster than opening: leaving shouldn't cost the user a beat. */
-const CLOSE = "transform 320ms ease-in, opacity 240ms ease-in"
-
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -39,16 +27,8 @@ function initials(name: string) {
 }
 
 /**
- * What's in the folder: the person who wrote the questions.
- *
- * It opens the way a mac opens a folder — scaled up out of the icon itself
- * rather than faded in over the middle of the screen. The trick is only a
- * transform-origin: park it on the folder's centre and a scale from nothing
- * looks like the window came out of the folder.
- *
- * The transform is dropped once the window has arrived. It has to be: the
- * window inside is draggable, and drag pins it with `position: fixed`, which
- * a transformed ancestor would silently reinterpret as "relative to me".
+ * What's in the folder: the person who wrote the questions. It grows out of
+ * the folder icon — see WindowPop for how, and why.
  */
 export function KnowMore({
   anchor,
@@ -58,163 +38,118 @@ export function KnowMore({
   anchor: DOMRect | null
   onClosed: () => void
 }>) {
-  const boxRef = useRef<HTMLDivElement>(null)
-  const [phase, setPhase] = useState<"seed" | "open" | "closing">("seed")
-  const [origin, setOrigin] = useState("50% 50%")
+  const [closing, setClosing] = useState(false)
   const [photoBroken, setPhotoBroken] = useState(false)
 
-  // offsetLeft/Top rather than a bounding rect: the box is already scaled to
-  // a speck at this point, and a rect would measure the speck.
-  useLayoutEffect(() => {
-    const box = boxRef.current
-    if (!box || !anchor) return
-    const x = anchor.left + anchor.width / 2 - box.offsetLeft
-    const y = anchor.top + anchor.height / 2 - box.offsetTop
-    setOrigin(`${x}px ${y}px`)
-  }, [anchor])
-
-  useEffect(() => {
-    const frame = requestAnimationFrame(() =>
-      setPhase((current) => (current === "seed" ? "open" : current))
-    )
-    return () => cancelAnimationFrame(frame)
-  }, [])
-
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return
-      // The game binds keys globally; this window is on top, so it eats the
-      // keystroke rather than also cancelling whatever is behind it.
-      event.stopPropagation()
-      setPhase("closing")
-    }
-
-    window.addEventListener("keydown", onKeyDown, true)
-    return () => window.removeEventListener("keydown", onKeyDown, true)
-  }, [])
+  useEscapeToClose(() => setClosing(true))
 
   const socials = KNOW_MORE.socials.filter((social) => social.href)
-  const closed = phase === "closing"
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-30 hidden items-center justify-center px-6 md:flex">
-      <div
-        ref={boxRef}
-        onTransitionEnd={(event) => {
-          if (event.propertyName === "transform" && closed) onClosed()
-        }}
-        style={{
-          transformOrigin: origin,
-          // Cleared on arrival so the window underneath can pin itself.
-          transform: phase === "open" ? undefined : `scale(${SEED_SCALE})`,
-          opacity: phase === "open" ? 1 : 0,
-          transition: closed ? CLOSE : OPEN,
-        }}
+    <WindowPop anchor={anchor} closing={closing} onClosed={onClosed}>
+      <TerminalWindow
+        interactive
+        onClose={() => setClosing(true)}
+        title={KNOW_MORE.title}
+        className="pointer-events-auto h-[348px] w-[620px] max-w-full"
       >
-        <TerminalWindow
-          interactive
-          onClose={() => setPhase("closing")}
-          title={KNOW_MORE.title}
-          className="pointer-events-auto h-[348px] w-[620px] max-w-full"
-        >
-          <div className="flex min-h-0 flex-1 flex-col gap-5">
-            <div className="flex flex-none items-start gap-5">
-              {/* The initials are not a spinner — they are the fallback, and
+        <div className="flex min-h-0 flex-1 flex-col gap-5">
+          <div className="flex flex-none items-start gap-5">
+            {/* The initials are not a spinner — they are the fallback, and
                   they stay if no photo is ever dropped in. */}
-              <div className="relative grid size-[118px] flex-none place-items-center overflow-hidden rounded-panel border border-term-line-strong bg-term-inset">
-                <span className="font-display text-[30px] font-bold text-term-ghost">
-                  {initials(KNOW_MORE.name)}
-                </span>
-                {photoBroken ? null : (
-                  <Image
-                    src={KNOW_MORE.photo}
-                    alt={KNOW_MORE.name}
-                    width={236}
-                    height={236}
-                    draggable={false}
-                    onError={() => setPhotoBroken(true)}
-                    className="absolute inset-0 size-full object-cover"
-                  />
-                )}
-              </div>
-
-              <div className="flex min-w-0 flex-1 flex-col gap-3">
-                <div className="min-w-0">
-                  <p className="truncate font-display text-[21px] leading-tight font-bold tracking-tight text-term-ink">
-                    {KNOW_MORE.name}
-                  </p>
-                  <p className="font-mono text-[13px] text-term-accent">
-                    {KNOW_MORE.role}
-                  </p>
-                </div>
-
-                <a
-                  href={`mailto:${KNOW_MORE.email}`}
-                  className="block max-w-full truncate font-mono text-[13px] text-term-muted underline decoration-term-ghost underline-offset-4 transition-colors outline-none hover:text-term-ink hover:decoration-term-muted focus-visible:text-term-ink"
-                >
-                  {KNOW_MORE.email}
-                </a>
-
-                <div className="flex flex-wrap gap-2.5">
-                  {socials.map((social) => (
-                    <a
-                      key={social.id}
-                      href={social.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      title={social.label}
-                      aria-label={social.label}
-                      className="grid size-9 place-items-center rounded-full border border-term-line-strong bg-term-keycap text-term-muted transition-colors outline-none hover:border-term-accent hover:bg-term-accent hover:text-term-on-accent focus-visible:border-term-accent focus-visible:text-term-accent"
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden
-                        className="size-[17px]"
-                      >
-                        <path d={SOCIAL_MARK[social.id]} />
-                      </svg>
-                    </a>
-                  ))}
-                </div>
-              </div>
+            <div className="relative grid size-[118px] flex-none place-items-center overflow-hidden rounded-panel border border-term-line-strong bg-term-inset">
+              <span className="font-display text-[30px] font-bold text-term-ghost">
+                {initials(KNOW_MORE.name)}
+              </span>
+              {photoBroken ? null : (
+                <Image
+                  src={KNOW_MORE.photo}
+                  alt={KNOW_MORE.name}
+                  width={236}
+                  height={236}
+                  draggable={false}
+                  onError={() => setPhotoBroken(true)}
+                  className="absolute inset-0 size-full object-cover"
+                />
+              )}
             </div>
 
-            <p className="font-mono text-[13px]/[1.7] text-term-muted">
-              {KNOW_MORE.bio}
-            </p>
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-display text-[21px] leading-tight font-bold tracking-tight text-term-ink">
+                  {KNOW_MORE.name}
+                </p>
+                <p className="font-mono text-[13px] text-term-accent">
+                  {KNOW_MORE.role}
+                </p>
+              </div>
 
-            {/* Opens Drive's viewer in a tab rather than pulling a PDF onto
-                the visitor's disk — nobody asked for a file. */}
-            <a
-              href={KNOW_MORE.resume}
-              target="_blank"
-              rel="noreferrer"
-              className={cn(
-                "mt-auto inline-flex flex-none items-center justify-center gap-2 self-start rounded-keycap",
-                "bg-term-accent px-4 py-2 font-mono text-[13px] font-bold text-term-on-accent shadow-hard",
-                "transition-[background-color,box-shadow,transform] outline-none",
-                "hover:bg-term-accent-hover focus-visible:bg-term-accent-hover",
-                "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-              )}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-                className="size-4"
+              <a
+                href={`mailto:${KNOW_MORE.email}`}
+                className="block max-w-full truncate font-mono text-[13px] text-term-muted underline decoration-term-ghost underline-offset-4 transition-colors outline-none hover:text-term-ink hover:decoration-term-muted focus-visible:text-term-ink"
               >
-                <path d="M14 4h6v6M20 4l-8.5 8.5M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5" />
-              </svg>
-              {KNOW_MORE.resumeLabel}
-            </a>
+                {KNOW_MORE.email}
+              </a>
+
+              <div className="flex flex-wrap gap-2.5">
+                {socials.map((social) => (
+                  <a
+                    key={social.id}
+                    href={social.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={social.label}
+                    aria-label={social.label}
+                    className="grid size-9 place-items-center rounded-full border border-term-line-strong bg-term-keycap text-term-muted transition-colors outline-none hover:border-term-accent hover:bg-term-accent hover:text-term-on-accent focus-visible:border-term-accent focus-visible:text-term-accent"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden
+                      className="size-[17px]"
+                    >
+                      <path d={SOCIAL_MARK[social.id]} />
+                    </svg>
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
-        </TerminalWindow>
-      </div>
-    </div>
+
+          <p className="font-mono text-[13px]/[1.7] text-term-muted">
+            {KNOW_MORE.bio}
+          </p>
+
+          {/* Opens Drive's viewer in a tab rather than pulling a PDF onto
+                the visitor's disk — nobody asked for a file. */}
+          <a
+            href={KNOW_MORE.resume}
+            target="_blank"
+            rel="noreferrer"
+            className={cn(
+              "mt-auto inline-flex flex-none items-center justify-center gap-2 self-start rounded-keycap",
+              "bg-term-accent px-4 py-2 font-mono text-[13px] font-bold text-term-on-accent shadow-hard",
+              "transition-[background-color,box-shadow,transform] outline-none",
+              "hover:bg-term-accent-hover focus-visible:bg-term-accent-hover",
+              "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            )}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              className="size-4"
+            >
+              <path d="M14 4h6v6M20 4l-8.5 8.5M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5" />
+            </svg>
+            {KNOW_MORE.resumeLabel}
+          </a>
+        </div>
+      </TerminalWindow>
+    </WindowPop>
   )
 }

@@ -268,6 +268,21 @@ export const VERDICT = {
   retry: "to try again",
 } as const
 
+/**
+ * The way out, offered only once a life is gone — before that there is
+ * nothing to give up on. Quitting is not punished beyond what it already
+ * costs: the run ends where it stands, lives and all, and the card says so.
+ */
+export const GIVE_UP = {
+  key: "esc",
+  label: "I give up",
+  command: "cycwai quit",
+  abandoned: (level: number, lives: number) =>
+    `run abandoned at level ${level}/${FINAL_LEVEL} — ${lives} ${
+      lives === 1 ? "life" : "lives"
+    } still on the table.`,
+} as const
+
 /* -------------------------------------------------------------------------
    Endings
 ---------------------------------------------------------------------------*/
@@ -352,7 +367,10 @@ export const HINTS = {
   ],
   checking: [{ key: "…", label: "hold on" }],
   verdictPass: [{ key: "⏎", label: "continue" }],
-  verdictFail: [{ key: "⏎", label: "try again — same level" }],
+  verdictFail: [
+    { key: "⏎", label: "try again — same level" },
+    { key: "esc", label: "give up — end the run here" },
+  ],
   verdictDead: [{ key: "⏎", label: "accept it" }],
   ending: [
     { key: "↑↓", label: "move" },
@@ -401,6 +419,15 @@ export const SHARE = {
   dare: "think you'd do better?",
   prove: (url: string) => `prove it: ${url}`,
   friendDare: "I dare you:",
+
+  /**
+   * Last line of the post, where both networks expect tags to be. It sits
+   * after the link rather than before it — X picks its own preview from the
+   * one URL in the post, and a tag is not a URL, so nothing gets stolen from
+   * the card. Deliberately not in the DM dare below: a hashtag in a message
+   * to one person is just noise.
+   */
+  tag: "#cycwai",
 
   challenged: "copied ✓ — now go send it to someone who needs humbling.",
   linkedin: "copied — paste it into the post.",

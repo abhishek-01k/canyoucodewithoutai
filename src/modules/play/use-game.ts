@@ -82,6 +82,7 @@ export function useGame() {
   const swear = useCallback(() => dispatch({ type: "swear" }), [])
   const flinch = useCallback(() => dispatch({ type: "flinch" }), [])
   const advance = useCallback(() => dispatch({ type: "advance" }), [])
+  const giveUp = useCallback(() => dispatch({ type: "give-up" }), [])
   const restart = useCallback(() => dispatch({ type: "restart" }), [])
 
   const startRun = useCallback((handle: string) => {
@@ -102,6 +103,7 @@ export function useGame() {
     swear,
     flinch,
     advance,
+    giveUp,
     restart,
     startRun,
     pickAndSubmit,

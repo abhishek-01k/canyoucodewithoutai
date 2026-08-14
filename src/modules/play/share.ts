@@ -33,9 +33,9 @@ export interface ShareResult {
  * intents post exactly this, so a post and the card its link unfurls into can
  * never disagree.
  *
- * Three lines: what the run was, the dare, the link. The picture is doing the
- * rest of the work — X and LinkedIn turn that link into the player's rank
- * card, which says more about the run than a paragraph would.
+ * Four lines: what the run was, the dare, the link, the tag. The picture is
+ * doing the rest of the work — X and LinkedIn turn that link into the
+ * player's rank card, which says more about the run than a paragraph would.
  */
 export function buildShare(state: GameState): ShareResult {
   const line = SHARE.line(clearedCount(state.results))
@@ -46,7 +46,7 @@ export function buildShare(state: GameState): ShareResult {
   const url = resultUrl(state)
 
   return {
-    block: `${line}\n\n${SHARE.dare}\n\n${SHARE.prove(url)}`,
+    block: `${line}\n\n${SHARE.dare}\n\n${SHARE.prove(url)}\n\n${SHARE.tag}`,
     url,
     squares: state.results,
     livesLeft: STARTING_LIVES - state.livesLost,

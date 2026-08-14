@@ -43,3 +43,41 @@ export function useNowByMinute(): Date | null {
   const minute = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
   return minute === null ? null : new Date(minute * MINUTE)
 }
+
+const SECOND = 1000
+
+/** The same trick a minute at a time: fire on the second boundary. */
+function subscribeSecond(onChange: () => void) {
+  let timeout: ReturnType<typeof setTimeout>
+
+  function schedule() {
+    timeout = setTimeout(
+      () => {
+        onChange()
+        schedule()
+      },
+      SECOND - (Date.now() % SECOND)
+    )
+  }
+
+  schedule()
+  return () => clearTimeout(timeout)
+}
+
+function getSecond(): number | null {
+  return Math.floor(Date.now() / SECOND)
+}
+
+/**
+ * The wall clock, to the second — what a clock with a sweep hand needs, and
+ * more than anything else should be re-rendering for. Null on the server for
+ * the same reason as the minute clock.
+ */
+export function useNowBySecond(): Date | null {
+  const second = useSyncExternalStore(
+    subscribeSecond,
+    getSecond,
+    getServerSnapshot
+  )
+  return second === null ? null : new Date(second * SECOND)
+}
