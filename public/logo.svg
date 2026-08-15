@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512" role="img" aria-label="cycwai">
+  <!--
+    The cycwai mark: a shell prompt in a macOS-shaped tile.
+
+    The whole site is one desktop scene with a terminal open in it, so the
+    logo is the smallest piece of that scene that still reads as itself — the
+    caret and the block cursor. Colours and the tile radius come straight out
+    of globals.css (term-bg, term-accent, radius-icon), so the mark never
+    drifts from the product.
+  -->
+  <rect width="64" height="64" rx="14" fill="#0e0f0c" />
+  <!-- A hairline so the tile still has an edge on a dark page. -->
+  <rect x="0.5" y="0.5" width="63" height="63" rx="13.5" fill="none" stroke="#24261f" />
+  <!-- The caret. Square caps and a miter join: block art, not calligraphy. -->
+  <path
+    d="M18 20 L30 32 L18 44"
+    fill="none"
+    stroke="#c9f73a"
+    stroke-width="7"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+  />
+  <!-- The cursor, sitting on the caret's own baseline. -->
+  <rect x="38" y="40.5" width="12" height="6" fill="#c9f73a" />
+</svg>

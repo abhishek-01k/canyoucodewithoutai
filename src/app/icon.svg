@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!--
+    The favicon: public/logo.svg with the detail taken out.
+
+    A browser tab draws this at 16px, where the hairline edge turns to mud and
+    a 7-unit stroke goes spindly, so the caret is fatter here and the tile has
+    no border. Keep it in step with public/logo.svg by hand — same geometry,
+    heavier ink.
+  -->
+  <rect width="64" height="64" rx="13" fill="#0e0f0c" />
+  <path
+    d="M18 21 L29.5 32 L18 43"
+    fill="none"
+    stroke="#c9f73a"
+    stroke-width="9"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+  />
+  <rect x="36" y="39" width="14" height="7" fill="#c9f73a" />
+</svg>

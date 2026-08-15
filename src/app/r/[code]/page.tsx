@@ -22,7 +22,8 @@ type Params = { params: Promise<{ code: string }> }
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { code } = await params
   const run = decodeResult(code)
-  if (!run) return { title: SITE.name }
+  // `absolute` so a code that doesn't decode isn't titled "cycwai — cycwai".
+  if (!run) return { title: { absolute: SITE.short } }
 
   const rank = rankFor(run.squares)
   const title = RESULT_PAGE.title(run.handle, rank.label)

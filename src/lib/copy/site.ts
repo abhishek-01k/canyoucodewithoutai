@@ -6,6 +6,8 @@
 
 export const SITE = {
   name: "canyoucodewithoutai.xyz",
+  /** The brand: the shell command, the ASCII logo, and the browser tab. */
+  short: "cycwai",
   url: "https://canyoucodewithoutai.xyz",
   author: "@abhish_3k",
 } as const

@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
    */
   outputFileTracingIncludes: {
     "/r/[code]": ["./public/rankCards/**", "./public/fonts/**"],
+    // The site's own card reads the same font off disk, for the same reason.
+    "/": ["./public/fonts/**"],
   },
 }
 
